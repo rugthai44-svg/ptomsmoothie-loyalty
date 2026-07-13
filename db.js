@@ -8,6 +8,117 @@ const SUPABASE_CONFIG = {
   key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqZGR2bnBkanFvaWN5cHJqb2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5NDIwOTEsImV4cCI6MjA5OTUxODA5MX0._iGBnLbb7o3JStH6dE4KaqC-k36bSyEvsPq3nFBrPw4'
 };
 
+// --- DATA MAPPING HELPERS FOR POSTGRESQL LOWERCASE COLUMNS ---
+function mapUserToLocal(u) {
+  if (!u) return null;
+  return {
+    username: u.username,
+    fullName: u.fullname !== undefined ? u.fullname : u.fullName,
+    email: u.email,
+    passwordHash: u.passwordhash !== undefined ? u.passwordhash : u.passwordHash,
+    points: u.points,
+    createdAt: u.createdat !== undefined ? u.createdat : u.createdAt
+  };
+}
+
+function mapUserToSupabase(u) {
+  if (!u) return null;
+  return {
+    username: u.username,
+    fullname: u.fullName,
+    email: u.email,
+    passwordhash: u.passwordHash,
+    points: u.points,
+    createdat: u.createdAt
+  };
+}
+
+function mapScanToLocal(s) {
+  if (!s) return null;
+  return {
+    id: s.id,
+    username: s.username,
+    timestamp: s.timestamp,
+    pointsGained: s.pointsgained !== undefined ? s.pointsgained : s.pointsGained,
+    status: s.status,
+    description: s.description,
+    photoData: s.photodata !== undefined ? s.photodata : s.photoData
+  };
+}
+
+function mapScanToSupabase(s) {
+  if (!s) return null;
+  return {
+    id: s.id,
+    username: s.username,
+    timestamp: s.timestamp,
+    pointsgained: s.pointsGained,
+    status: s.status,
+    description: s.description,
+    photodata: s.photoData
+  };
+}
+
+function mapRedemptionToLocal(r) {
+  if (!r) return null;
+  return {
+    id: r.id,
+    username: r.username,
+    timestamp: r.timestamp,
+    pointsDeducted: r.pointsdeducted !== undefined ? r.pointsdeducted : r.pointsDeducted,
+    status: r.status,
+    photoData: r.photodata !== undefined ? r.photodata : r.photoData
+  };
+}
+
+function mapRedemptionToSupabase(r) {
+  if (!r) return null;
+  return {
+    id: r.id,
+    username: r.username,
+    timestamp: r.timestamp,
+    pointsdeducted: r.pointsDeducted,
+    status: r.status,
+    photodata: r.photoData
+  };
+}
+
+function mapOrderToLocal(o) {
+  if (!o) return null;
+  return {
+    id: o.id,
+    username: o.username,
+    items: o.items,
+    totalPrice: o.totalprice !== undefined ? parseFloat(o.totalprice) : o.totalPrice,
+    costPaid: o.costpaid !== undefined ? parseFloat(o.costpaid) : o.costPaid,
+    pointsEarned: o.pointsearned !== undefined ? o.pointsearned : o.pointsEarned,
+    pickupTime: o.pickuptime !== undefined ? o.pickuptime : o.pickupTime,
+    notes: o.notes,
+    status: o.status,
+    slipImage: o.slipimage !== undefined ? o.slipimage : o.slipImage,
+    pointsAwarded: o.pointsawarded !== undefined ? o.pointsawarded : o.pointsAwarded,
+    timestamp: o.timestamp
+  };
+}
+
+function mapOrderToSupabase(o) {
+  if (!o) return null;
+  return {
+    id: o.id,
+    username: o.username,
+    items: o.items,
+    totalprice: o.totalPrice,
+    costpaid: o.costPaid,
+    pointsearned: o.pointsEarned,
+    pickuptime: o.pickupTime,
+    notes: o.notes,
+    status: o.status,
+    slipimage: o.slipImage,
+    pointsawarded: o.pointsAwarded,
+    timestamp: o.timestamp
+  };
+}
+
 // Helper for Supabase HTTP REST API requests
 async function sbQuery(path, method = 'GET', body = null, headers = {}) {
   if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.key) return null;
@@ -56,15 +167,16 @@ async function syncFromSupabase() {
         console.log('Supabase users table is empty, seeding...');
         const localUsers = JSON.parse(localStorage.getItem('ptom_users')) || [];
         for (const u of localUsers) {
-          await sbQuery('ptom_users', 'POST', u);
+          await sbQuery('ptom_users', 'POST', mapUserToSupabase(u));
         }
       } else {
-        localStorage.setItem('ptom_users', JSON.stringify(users));
+        const mappedUsers = users.map(mapUserToLocal);
+        localStorage.setItem('ptom_users', JSON.stringify(mappedUsers));
         // Sync current active user
         const curUser = localStorage.getItem('ptom_current_user');
         if (curUser) {
           const parsed = JSON.parse(curUser);
-          const fresh = users.find(u => u.username === parsed.username);
+          const fresh = mappedUsers.find(u => u.username === parsed.username);
           if (fresh) {
             localStorage.setItem('ptom_current_user', JSON.stringify(fresh));
           }
@@ -79,23 +191,23 @@ async function syncFromSupabase() {
         console.log('Supabase scans table is empty, seeding...');
         const localScans = JSON.parse(localStorage.getItem('ptom_scans')) || [];
         for (const s of localScans) {
-          await sbQuery('ptom_scans', 'POST', s);
+          await sbQuery('ptom_scans', 'POST', mapScanToSupabase(s));
         }
       } else {
-        localStorage.setItem('ptom_scans', JSON.stringify(scans));
+        localStorage.setItem('ptom_scans', JSON.stringify(scans.map(mapScanToLocal)));
       }
     }
 
     // 3. Sync redemptions
     const redemptions = await sbQuery('ptom_redemptions?select=*&order=timestamp.desc');
     if (redemptions) {
-      localStorage.setItem('ptom_redemptions', JSON.stringify(redemptions));
+      localStorage.setItem('ptom_redemptions', JSON.stringify(redemptions.map(mapRedemptionToLocal)));
     }
 
     // 4. Sync orders (bookings)
     const orders = await sbQuery('ptom_orders?select=*&order=timestamp.desc');
     if (orders) {
-      localStorage.setItem('ptom_orders', JSON.stringify(orders));
+      localStorage.setItem('ptom_orders', JSON.stringify(orders.map(mapOrderToLocal)));
     }
 
     // 5. Sync activity logs
@@ -103,7 +215,6 @@ async function syncFromSupabase() {
     if (logs) {
       localStorage.setItem('ptom_activity_logs', JSON.stringify(logs));
     }
-
 
     // Trigger UI updates on all active tabs
     window.dispatchEvent(new Event('storage'));
@@ -228,7 +339,6 @@ async function syncFromSupabase() {
     }));
   }
 
-
   // Trigger Supabase Background Sync
   setTimeout(syncFromSupabase, 100);
 })();
@@ -270,7 +380,7 @@ const DB = {
     this.logActivity(newUser.username, 'สมัครสมาชิก', 'เปิดบัญชีสมาชิกใหม่สำเร็จ');
 
     // Supabase Async Write
-    sbQuery('ptom_users', 'POST', newUser);
+    sbQuery('ptom_users', 'POST', mapUserToSupabase(newUser));
     
     return newUser;
   },
@@ -341,11 +451,11 @@ const DB = {
 
     // Supabase Async Write
     const updatedFields = {
-      fullName: users[userIdx].fullName,
+      fullname: users[userIdx].fullName,
       email: users[userIdx].email
     };
     if (newPassword) {
-      updatedFields.passwordHash = newPassword;
+      updatedFields.passwordhash = newPassword;
     }
     sbQuery(`ptom_users?username=eq.${encodeURIComponent(currentUser.username)}`, 'PATCH', updatedFields);
   },
@@ -402,7 +512,7 @@ const DB = {
 
     // Supabase Async Write
     sbQuery(`ptom_users?username=eq.${encodeURIComponent(username)}`, 'PATCH', { points: newPoints });
-    sbQuery('ptom_scans', 'POST', newScan);
+    sbQuery('ptom_scans', 'POST', mapScanToSupabase(newScan));
 
     return users[userIdx];
   },
@@ -444,7 +554,7 @@ const DB = {
 
     // Supabase Async Write
     sbQuery(`ptom_users?username=eq.${encodeURIComponent(username)}`, 'PATCH', { points: users[userIdx].points });
-    sbQuery('ptom_redemptions', 'POST', newRedemption);
+    sbQuery('ptom_redemptions', 'POST', mapRedemptionToSupabase(newRedemption));
 
     return redeemId;
   },
@@ -557,7 +667,7 @@ const DB = {
     this.saveOrders(orders);
 
     // Supabase Async Write
-    sbQuery('ptom_orders', 'POST', newOrder);
+    sbQuery('ptom_orders', 'POST', mapOrderToSupabase(newOrder));
 
     return newOrder;
   },
@@ -576,7 +686,7 @@ const DB = {
 
     // Supabase Async Write
     sbQuery(`ptom_orders?id=eq.${encodeURIComponent(orderId)}`, 'PATCH', {
-      slipImage: slipImage,
+      slipimage: slipImage,
       status: 'Verifying'
     });
 
@@ -610,7 +720,7 @@ const DB = {
     // Supabase Async Write
     sbQuery(`ptom_orders?id=eq.${encodeURIComponent(orderId)}`, 'PATCH', {
       status: nextStatus,
-      pointsAwarded: pointsAwardedNew
+      pointsawarded: pointsAwardedNew
     });
 
     return order;
@@ -648,10 +758,9 @@ const DB = {
     // Supabase Async Write
     sbQuery(`ptom_orders?id=eq.${encodeURIComponent(orderId)}`, 'PATCH', {
       status: 'Rejected',
-      pointsAwarded: pointsAwardedNew
+      pointsawarded: pointsAwardedNew
     });
 
     return order;
   },
-
 };
