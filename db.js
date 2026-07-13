@@ -4,8 +4,8 @@
 // Paste your Supabase Project URL and Anon Key here to enable online database.
 // If left blank, it will automatically fallback to LocalStorage mode.
 const SUPABASE_CONFIG = {
-  url: '', // e.g. 'https://xxxx.supabase.co'
-  key: ''  // e.g. 'eyJhbGciOiJIUzI1NiIsIn...'
+  url: 'https://bjddvnpdjqoicyprjojw.supabase.co', // e.g. 'https://xxxx.supabase.co'
+  key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqZGR2bnBkanFvaWN5cHJqb2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5NDIwOTEsImV4cCI6MjA5OTUxODA5MX0._iGBnLbb7o3JStH6dE4KaqC-k36bSyEvsPq3nFBrPw4'
 };
 
 // Helper for Supabase HTTP REST API requests
