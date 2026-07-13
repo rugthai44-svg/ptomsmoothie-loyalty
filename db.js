@@ -1,6 +1,129 @@
-// P'Tom's Smoothie Shop Local Storage Database & Logic Engine
+// P'Tom's Smoothie Shop Local Storage Database & Logic Engine with Supabase Sync
 
-// Initialize Data Structures
+// Supabase Configuration
+// Paste your Supabase Project URL and Anon Key here to enable online database.
+// If left blank, it will automatically fallback to LocalStorage mode.
+const SUPABASE_CONFIG = {
+  url: '', // e.g. 'https://xxxx.supabase.co'
+  key: ''  // e.g. 'eyJhbGciOiJIUzI1NiIsIn...'
+};
+
+// Helper for Supabase HTTP REST API requests
+async function sbQuery(path, method = 'GET', body = null, headers = {}) {
+  if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.key) return null;
+  const cleanUrl = SUPABASE_CONFIG.url.replace(/\/$/, '');
+  const url = `${cleanUrl}/rest/v1/${path}`;
+  const defaultHeaders = {
+    'apikey': SUPABASE_CONFIG.key,
+    'Authorization': `Bearer ${SUPABASE_CONFIG.key}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  };
+  const options = {
+    method,
+    headers: { ...defaultHeaders, ...headers },
+    keepalive: true
+  };
+  if (body) {
+    options.body = JSON.stringify(body);
+  }
+  try {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`Supabase API error (${response.status}):`, errText);
+      throw new Error(errText || `HTTP ${response.status}`);
+    }
+    if (response.status === 204) return null;
+    return await response.json();
+  } catch (error) {
+    console.error('Supabase fetch failed:', error);
+    throw error;
+  }
+}
+
+// Background sync from Supabase
+async function syncFromSupabase() {
+  if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.key) return;
+  try {
+    console.log('Background Syncing with Supabase...');
+    
+    // 1. Sync users
+    const users = await sbQuery('ptom_users?select=*');
+    if (users) {
+      if (users.length === 0) {
+        // Seed Supabase with local users if empty
+        console.log('Supabase users table is empty, seeding...');
+        const localUsers = JSON.parse(localStorage.getItem('ptom_users')) || [];
+        for (const u of localUsers) {
+          await sbQuery('ptom_users', 'POST', u);
+        }
+      } else {
+        localStorage.setItem('ptom_users', JSON.stringify(users));
+        // Sync current active user
+        const curUser = localStorage.getItem('ptom_current_user');
+        if (curUser) {
+          const parsed = JSON.parse(curUser);
+          const fresh = users.find(u => u.username === parsed.username);
+          if (fresh) {
+            localStorage.setItem('ptom_current_user', JSON.stringify(fresh));
+          }
+        }
+      }
+    }
+
+    // 2. Sync scans
+    const scans = await sbQuery('ptom_scans?select=*&order=timestamp.desc');
+    if (scans) {
+      if (scans.length === 0) {
+        console.log('Supabase scans table is empty, seeding...');
+        const localScans = JSON.parse(localStorage.getItem('ptom_scans')) || [];
+        for (const s of localScans) {
+          await sbQuery('ptom_scans', 'POST', s);
+        }
+      } else {
+        localStorage.setItem('ptom_scans', JSON.stringify(scans));
+      }
+    }
+
+    // 3. Sync redemptions
+    const redemptions = await sbQuery('ptom_redemptions?select=*&order=timestamp.desc');
+    if (redemptions) {
+      localStorage.setItem('ptom_redemptions', JSON.stringify(redemptions));
+    }
+
+    // 4. Sync orders (bookings)
+    const orders = await sbQuery('ptom_orders?select=*&order=timestamp.desc');
+    if (orders) {
+      localStorage.setItem('ptom_orders', JSON.stringify(orders));
+    }
+
+    // 5. Sync activity logs
+    const logs = await sbQuery('ptom_activity_logs?select=*&order=timestamp.desc&limit=200');
+    if (logs) {
+      localStorage.setItem('ptom_activity_logs', JSON.stringify(logs));
+    }
+
+    // 6. Sync fruit market
+    const market = await sbQuery('ptom_fruit_market?select=*');
+    if (market && market.length > 0) {
+      localStorage.setItem('ptom_fruit_market', JSON.stringify(market));
+    } else if (market && market.length === 0) {
+      const localMarket = JSON.parse(localStorage.getItem('ptom_fruit_market')) || [];
+      for (const f of localMarket) {
+        await sbQuery('ptom_fruit_market', 'POST', f);
+      }
+    }
+
+    // Trigger UI updates on all active tabs
+    window.dispatchEvent(new Event('storage'));
+    console.log('Successfully synchronized with Supabase!');
+  } catch (err) {
+    console.error('Failed to background sync with Supabase:', err);
+  }
+}
+
+// Initialize Data Structures in LocalStorage
 (function initDatabase() {
   if (!localStorage.getItem('ptom_users')) {
     const seedUsers = [
@@ -32,7 +155,8 @@
         timestamp: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
         pointsGained: 10,
         status: 'Success',
-        description: 'จองเครื่องดื่ม อะโวคาโดน้ำผึ้งปั่น'
+        description: 'จองเครื่องดื่ม อะโวคาโดน้ำผึ้งปั่น',
+        photoData: ''
       },
       {
         id: 'PTS-87294',
@@ -40,7 +164,8 @@
         timestamp: new Date(Date.now() - 1 * 3600 * 1000).toISOString(),
         pointsGained: 10,
         status: 'Success',
-        description: 'จองเครื่องดื่ม สตรอว์เบอร์รีโยเกิร์ตปั่น'
+        description: 'จองเครื่องดื่ม สตรอว์เบอร์รีโยเกิร์ตปั่น',
+        photoData: ''
       }
     ];
     localStorage.setItem('ptom_scans', JSON.stringify(seedScans));
@@ -132,6 +257,9 @@
     ];
     localStorage.setItem('ptom_fruit_market', JSON.stringify(fruits));
   }
+
+  // Trigger Supabase Background Sync
+  setTimeout(syncFromSupabase, 100);
 })();
 
 // Helper Functions
@@ -169,6 +297,10 @@ const DB = {
     users.push(newUser);
     this.saveUsers(users);
     this.logActivity(newUser.username, 'สมัครสมาชิก', 'เปิดบัญชีสมาชิกใหม่สำเร็จ');
+
+    // Supabase Async Write
+    sbQuery('ptom_users', 'POST', newUser);
+    
     return newUser;
   },
 
@@ -235,11 +367,20 @@ const DB = {
     this.saveUsers(users);
     localStorage.setItem('ptom_current_user', JSON.stringify(users[userIdx]));
     this.logActivity(currentUser.username, 'แก้ไขโปรไฟล์', 'อัปเดตข้อมูลส่วนตัว');
+
+    // Supabase Async Write
+    const updatedFields = {
+      fullName: users[userIdx].fullName,
+      email: users[userIdx].email
+    };
+    if (newPassword) {
+      updatedFields.passwordHash = newPassword;
+    }
+    sbQuery(`ptom_users?username=eq.${encodeURIComponent(currentUser.username)}`, 'PATCH', updatedFields);
   },
 
   // --- LOYALTY POINTS & RANKS ---
   getRank(points) {
-    // Valorant-style rank calculations
     if (points >= 800) return { name: 'Radiant (พี่ต้อมตัวจริง)', class: 'rank-radiant', logo: '💎', nextThreshold: Infinity };
     if (points >= 500) return { name: 'Platinum', class: 'rank-platinum', logo: '✨', nextThreshold: 800 };
     if (points >= 300) return { name: 'Gold', class: 'rank-gold', logo: '👑', nextThreshold: 500 };
@@ -258,7 +399,7 @@ const DB = {
 
     this.saveUsers(users);
 
-    // Save points log record (using scans table to avoid breaking schemas)
+    // Save points log record (using scans table)
     const scans = JSON.parse(localStorage.getItem('ptom_scans')) || [];
     const scanId = 'PTS-' + Math.floor(100000 + Math.random() * 90000);
     const newScan = {
@@ -287,6 +428,10 @@ const DB = {
     if (curUser && curUser.username === username) {
       localStorage.setItem('ptom_current_user', JSON.stringify(users[userIdx]));
     }
+
+    // Supabase Async Write
+    sbQuery(`ptom_users?username=eq.${encodeURIComponent(username)}`, 'PATCH', { points: newPoints });
+    sbQuery('ptom_scans', 'POST', newScan);
 
     return users[userIdx];
   },
@@ -326,22 +471,29 @@ const DB = {
       localStorage.setItem('ptom_current_user', JSON.stringify(users[userIdx]));
     }
 
+    // Supabase Async Write
+    sbQuery(`ptom_users?username=eq.${encodeURIComponent(username)}`, 'PATCH', { points: users[userIdx].points });
+    sbQuery('ptom_redemptions', 'POST', newRedemption);
+
     return redeemId;
   },
 
-  // --- LOG ACTIVITY (Real-time activity audit trail) ---
+  // --- LOG ACTIVITY ---
   logActivity(username, action, details) {
     const logs = JSON.parse(localStorage.getItem('ptom_activity_logs')) || [];
-    logs.unshift({
+    const newLog = {
       username,
       action,
       details,
       timestamp: new Date().toISOString()
-    });
-    // Keep max 200 logs
+    };
+    logs.unshift(newLog);
     if (logs.length > 200) logs.pop();
     localStorage.setItem('ptom_activity_logs', JSON.stringify(logs));
     window.dispatchEvent(new Event('storage'));
+
+    // Supabase Async Write
+    sbQuery('ptom_activity_logs', 'POST', newLog);
   },
 
   getActivityLogs() {
@@ -383,9 +535,6 @@ const DB = {
     localStorage.removeItem('ptom_admin_session');
   },
 
-  // --- VIRTUAL WALLET ENGINE ---
-  // (Trading features buyFruitStock, sellFruitStock, convertBalanceToPoints removed)
-
   syncCurrentUser(username) {
     const curUser = this.getCurrentUser();
     if (curUser && curUser.username === username) {
@@ -400,7 +549,6 @@ const DB = {
   // --- E-COMMERCE ORDERS SYSTEM ---
   getOrders(username = null) {
     let orders = JSON.parse(localStorage.getItem('ptom_orders')) || [];
-    // Filter out any DIY orders safely
     orders = orders.filter(o => o.items && Array.isArray(o.items) && !o.items.some(item => item && typeof item === 'string' && (item.includes('DIY') || item.includes('🧪'))));
     if (username) {
       return orders.filter(o => o.username === username);
@@ -418,7 +566,6 @@ const DB = {
     const userIdx = users.findIndex(u => u.username === username);
     if (userIdx === -1) throw new Error('ไม่พบข้อมูลผู้ใช้งาน');
 
-    // Save order record (booking)
     const orders = this.getOrders();
     const orderId = 'ORD-' + Math.floor(100000 + Math.random() * 90000);
     const newOrder = {
@@ -430,13 +577,16 @@ const DB = {
       pointsEarned,
       pickupTime,
       notes,
-      status: 'Pending', // Pending, Verifying, Preparing, Ready, Completed, Rejected
-      slipImage: '',     // Stores base64 image data of the slip
-      pointsAwarded: false, // Tracks if points have been credited
+      status: 'Pending', 
+      slipImage: '',     
+      pointsAwarded: false, 
       timestamp: new Date().toISOString()
     };
     orders.unshift(newOrder);
     this.saveOrders(orders);
+
+    // Supabase Async Write
+    sbQuery('ptom_orders', 'POST', newOrder);
 
     return newOrder;
   },
@@ -450,9 +600,15 @@ const DB = {
     orders[orderIdx].status = 'Verifying';
     this.saveOrders(orders);
 
-    // Log Activity
     const username = orders[orderIdx].username;
     this.logActivity(username, 'อัปโหลดสลิปชำระเงิน', `อัปโหลดสลิปชำระเงินสำหรับออร์เดอร์ ${orderId} เพื่อรอการตรวจสอบ`);
+
+    // Supabase Async Write
+    sbQuery(`ptom_orders?id=eq.${encodeURIComponent(orderId)}`, 'PATCH', {
+      slipImage: slipImage,
+      status: 'Verifying'
+    });
+
     return orders[orderIdx];
   },
 
@@ -465,20 +621,27 @@ const DB = {
     const oldStatus = order.status;
     order.status = nextStatus;
 
-    // Automatically award points if advancing to Preparing, Ready or Completed, and not yet awarded
+    let pointsAwardedNew = order.pointsAwarded;
     if (['Preparing', 'Ready', 'Completed'].includes(nextStatus) && !order.pointsAwarded) {
       const username = order.username;
       const pointsEarned = order.pointsEarned || 10;
       const description = `สะสมแต้มจากออร์เดอร์ ${orderId} (อนุมัติสลิปสำเร็จ)`;
       this.addPoints(username, pointsEarned, description);
       order.pointsAwarded = true;
+      pointsAwardedNew = true;
     }
 
     this.saveOrders(orders);
 
-    // Log Activity
     const username = order.username;
     this.logActivity('admin', 'เปลี่ยนสถานะออร์เดอร์', `อัปเดตออร์เดอร์ ${orderId} ของ @${username} จาก [${oldStatus}] เป็น [${nextStatus}]`);
+
+    // Supabase Async Write
+    sbQuery(`ptom_orders?id=eq.${encodeURIComponent(orderId)}`, 'PATCH', {
+      status: nextStatus,
+      pointsAwarded: pointsAwardedNew
+    });
+
     return order;
   },
 
@@ -491,25 +654,36 @@ const DB = {
     const oldStatus = order.status;
     order.status = 'Rejected';
 
-    // Safe clawback if points were already awarded
+    let pointsAwardedNew = order.pointsAwarded;
     if (order.pointsAwarded) {
       const users = this.getUsers();
       const userIdx = users.findIndex(u => u.username === order.username);
       if (userIdx !== -1) {
         users[userIdx].points = Math.max(0, users[userIdx].points - order.pointsEarned);
         this.saveUsers(users);
+        
+        // Supabase Async Write points rollback
+        sbQuery(`ptom_users?username=eq.${encodeURIComponent(order.username)}`, 'PATCH', { points: users[userIdx].points });
       }
       order.pointsAwarded = false;
+      pointsAwardedNew = false;
       this.logActivity('admin', 'หักแต้มคืนจากยกเลิกคำสั่งซื้อ', `หักคืนคะแนนสะสม -${order.pointsEarned} แต้ม ของลูกค้า @${order.username} จากออร์เดอร์ ${orderId}`);
     }
 
     this.saveOrders(orders);
     this.logActivity('admin', 'ปฏิเสธคำสั่งซื้อ', `ปฏิเสธออร์เดอร์ ${orderId} ของ @${order.username}`);
     this.syncCurrentUser(order.username);
+
+    // Supabase Async Write
+    sbQuery(`ptom_orders?id=eq.${encodeURIComponent(orderId)}`, 'PATCH', {
+      status: 'Rejected',
+      pointsAwarded: pointsAwardedNew
+    });
+
     return order;
   },
 
-  // --- FRUIT MARKET ENGINE (Real-time Trading Simulation) ---
+  // --- FRUIT MARKET ENGINE ---
   getFruitPrices() {
     return JSON.parse(localStorage.getItem('ptom_fruit_market'));
   }
