@@ -104,16 +104,6 @@ async function syncFromSupabase() {
       localStorage.setItem('ptom_activity_logs', JSON.stringify(logs));
     }
 
-    // 6. Sync fruit market
-    const market = await sbQuery('ptom_fruit_market?select=*');
-    if (market && market.length > 0) {
-      localStorage.setItem('ptom_fruit_market', JSON.stringify(market));
-    } else if (market && market.length === 0) {
-      const localMarket = JSON.parse(localStorage.getItem('ptom_fruit_market')) || [];
-      for (const f of localMarket) {
-        await sbQuery('ptom_fruit_market', 'POST', f);
-      }
-    }
 
     // Trigger UI updates on all active tabs
     window.dispatchEvent(new Event('storage'));
@@ -238,25 +228,6 @@ async function syncFromSupabase() {
     }));
   }
 
-  // Fruit Market Prices Init (Static database fallback)
-  const existingMarket = localStorage.getItem('ptom_fruit_market');
-  if (!existingMarket || JSON.parse(existingMarket).length < 10) {
-    const fruits = [
-      { fruit: 'Avocado (อะโวคาโด)', currentPrice: 120, change: 0, history: [120, 120], forecast: [120, 120] },
-      { fruit: 'Mango (มะม่วงอกร่อง)', currentPrice: 65, change: 0, history: [65, 65], forecast: [65, 65] },
-      { fruit: 'Coconut (มะพร้าวน้ำหอม)', currentPrice: 45, change: 0, history: [45, 45], forecast: [45, 45] },
-      { fruit: 'Strawberry (สตรอว์เบอร์รี)', currentPrice: 220, change: 0, history: [220, 220], forecast: [220, 220] },
-      { fruit: 'Blueberry (บลูเบอร์รีป่า)', currentPrice: 180, change: 0, history: [180, 180], forecast: [180, 180] },
-      { fruit: 'Kiwi (กีวี่สีทอง)', currentPrice: 95, change: 0, history: [95, 95], forecast: [95, 95] },
-      { fruit: 'Passion Fruit (เสาวรส)', currentPrice: 55, change: 0, history: [55, 55], forecast: [55, 55] },
-      { fruit: 'Orange (ส้มสายน้ำผึ้ง)', currentPrice: 40, change: 0, history: [40, 40], forecast: [40, 40] },
-      { fruit: 'Pineapple (สับปะรดภูแล)', currentPrice: 30, change: 0, history: [30, 30], forecast: [30, 30] },
-      { fruit: 'Banana (กล้วยหอมทอง)', currentPrice: 25, change: 0, history: [25, 25], forecast: [25, 25] },
-      { fruit: 'Watermelon (แตงโมหวาน)', currentPrice: 20, change: 0, history: [20, 20], forecast: [20, 20] },
-      { fruit: 'Apple (แอปเปิ้ลฟูจิ)', currentPrice: 80, change: 0, history: [80, 80], forecast: [80, 80] }
-    ];
-    localStorage.setItem('ptom_fruit_market', JSON.stringify(fruits));
-  }
 
   // Trigger Supabase Background Sync
   setTimeout(syncFromSupabase, 100);
@@ -683,8 +654,4 @@ const DB = {
     return order;
   },
 
-  // --- FRUIT MARKET ENGINE ---
-  getFruitPrices() {
-    return JSON.parse(localStorage.getItem('ptom_fruit_market'));
-  }
 };
