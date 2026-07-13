@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ออเดอร์การสั่งจองหน้าร้าน - แอดมินร้านพี่ต้อม</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .order-status-badge {
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .status-pending {
+      color: #ffd700;
+      border: 1px solid #ffd700;
+      background: rgba(255, 215, 0, 0.05);
+    }
+    .status-preparing {
+      color: var(--accent-cyan);
+      border: 1px solid var(--accent-cyan);
+      background: rgba(0, 240, 255, 0.05);
+    }
+    .status-ready {
+      color: var(--accent-green);
+      border: 1px solid var(--accent-green);
+      background: rgba(57, 255, 20, 0.05);
+    }
+    .status-completed {
+      color: #64748b;
+      border: 1px solid #475569;
+      background: rgba(100, 116, 139, 0.05);
+    }
+    .status-rejected {
+      color: var(--accent-red);
+      border: 1px solid var(--accent-red);
+      background: rgba(255, 56, 96, 0.05);
+    }
+    .order-card {
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="admin-layout">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="#00f0ff">
+          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+        </svg>
+        <span class="neon-text-cyan">ADMIN PORTAL</span>
+      </div>
+      <nav class="admin-nav">
+        <ul>
+          <li class="admin-nav-item"><a href="admin-dashboard.html">📈 ภาพรวมระบบ (Overview)</a></li>
+          <li class="admin-nav-item active"><a href="admin-orders.html">📦 ออเดอร์การสั่งจอง (Bookings)</a></li>
+          <li class="admin-nav-item"><a href="admin-members.html">👥 จัดการสมาชิก (Members)</a></li>
+          <li class="admin-nav-item"><a href="admin-scans.html">📷 ประวัติสะสมแต้ม (Scans)</a></li>
+          <li class="admin-nav-item"><a href="admin-settings.html">⚙️ ตั้งค่าระบบ (Settings)</a></li>
+        </ul>
+      </nav>
+      <div style="padding: 24px;">
+        <button class="btn btn-secondary" onclick="logoutAdmin()" style="width: 100%; border-color: var(--accent-red); color: var(--accent-red);">
+          🚪 ออกจากระบบ
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-content">
+      
+      <header class="admin-header">
+        <div>
+          <h1 style="font-size: 1.8rem; font-weight: 800;">📦 คิวรายการสั่งซื้อและปั่นน้ำเครื่องดื่ม (Live Orders)</h1>
+          <p style="color: var(--text-sub); font-size: 0.9rem;">ยอมรับออร์เดอร์, เริ่มการปรุงปั่น, และจัดส่งมอบเครื่องดื่มฟรี/ชำระเงินให้กับสมาชิก</p>
+        </div>
+      </header>
+
+      <!-- Active Orders queue section -->
+      <section class="glass-card">
+        <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+          <span>📋 รายชื่อออร์เดอร์คิวลูกค้าวันนี้</span>
+          <span style="font-size: 0.85rem; color: var(--accent-cyan); font-weight: 500;" id="ordersQueueCount">0 คิวรอดำเนินการ</span>
+        </h3>
+
+        <div class="custom-table-wrapper">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>รหัสออร์เดอร์</th>
+                <th>ข้อมูลสมาชิก</th>
+                <th>รายการเครื่องดื่ม</th>
+                <th>เวลานัดรับ</th>
+                <th>หมายเหตุ</th>
+                <th>ยอดชำระเงิน</th>
+                <th>สลิปชำระเงิน</th>
+                <th>แต้มสะสมได้รับ</th>
+                <th>สถานะปรุง</th>
+                <th>วันเวลาสั่งทำ</th>
+                <th>จัดการสั่งงาน</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTableBody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <div id="noOrdersMsg" style="text-align: center; color: var(--text-sub); padding: 40px 0; display: none;">
+          ยังไม่มีรายการคำสั่งซื้อของเครื่องดื่มส่งเข้ามาในขณะนี้
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="db.js"></script>
+  <script>
+    // Security check
+    if (!DB.isAdminLoggedIn()) {
+      window.location.href = 'admin-login.html';
+    }
+
+    function logoutAdmin() {
+      DB.adminLogout();
+      window.location.href = 'admin-login.html';
+    }
+
+    // Load and render orders table
+    function loadOrders() {
+      const orders = DB.getOrders();
+      const tbody = document.getElementById('ordersTableBody');
+      const noOrdersMsg = document.getElementById('noOrdersMsg');
+      const queueCountText = document.getElementById('ordersQueueCount');
+
+      tbody.innerHTML = '';
+      
+      const pendingCount = orders.filter(o => o.status === 'Pending' || o.status === 'Verifying' || o.status === 'Preparing' || o.status === 'Ready').length;
+      queueCountText.textContent = `${pendingCount} รายการกำลังทำคิว`;
+
+      if (orders.length === 0) {
+        noOrdersMsg.style.display = 'block';
+        return;
+      }
+      noOrdersMsg.style.display = 'none';
+
+      orders.forEach(order => {
+        const dateObj = new Date(order.timestamp);
+        const dateStr = dateObj.toLocaleDateString('th-TH') + ' ' + dateObj.toLocaleTimeString('th-TH');
+        
+        const row = document.createElement('tr');
+        
+        // Status Badge selection
+        let statusBadge = '';
+        if (order.status === 'Pending') statusBadge = `<span class="order-status-badge status-pending">รอดำเนินการ</span>`;
+        else if (order.status === 'Verifying') statusBadge = `<span class="order-status-badge" style="color: var(--accent-cyan); border: 1px solid var(--accent-cyan); background: rgba(0, 240, 255, 0.05);">รอตรวจสลิป</span>`;
+        else if (order.status === 'Preparing') statusBadge = `<span class="order-status-badge status-preparing">กำลังปรุงปั่น</span>`;
+        else if (order.status === 'Ready') statusBadge = `<span class="order-status-badge status-ready">พร้อมรับดื่ม</span>`;
+        else if (order.status === 'Completed') statusBadge = `<span class="order-status-badge status-completed">สำเร็จแล้ว</span>`;
+        else if (order.status === 'Rejected') statusBadge = `<span class="order-status-badge status-rejected">ยกเลิกรายการ</span>`;
+
+        // Action controls selector depending on status
+        let controls = '';
+        if (order.status === 'Pending') {
+          controls = `
+            <div style="display: flex; gap: 6px;">
+              <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem; border-color: var(--accent-cyan); color: var(--accent-cyan);" onclick="advanceOrder('${order.id}', 'Preparing')">
+                🍳 รับปรุง (ข้ามสลิป)
+              </button>
+              <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem; border-color: var(--accent-red); color: var(--accent-red);" onclick="rejectOrder('${order.id}')">
+                ✕ ยกเลิก
+              </button>
+            </div>
+          `;
+        } else if (order.status === 'Verifying') {
+          controls = `
+            <div style="display: flex; gap: 6px;">
+              <button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="advanceOrder('${order.id}', 'Preparing')">
+                ✅ อนุมัติ & รับปรุง
+              </button>
+              <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem; border-color: var(--accent-red); color: var(--accent-red);" onclick="rejectOrder('${order.id}')">
+                ✕ ปฏิเสธ
+              </button>
+            </div>
+          `;
+        } else if (order.status === 'Preparing') {
+          controls = `
+            <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem; border-color: var(--accent-green); color: var(--accent-green);" onclick="advanceOrder('${order.id}', 'Ready')">
+              🌀 ปรุงเสร็จแล้ว
+            </button>
+          `;
+        } else if (order.status === 'Ready') {
+          controls = `
+            <button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="advanceOrder('${order.id}', 'Completed')">
+              ✅ จัดส่งสำเร็จ
+            </button>
+          `;
+        } else {
+          controls = `<span style="font-size: 0.8rem; color: var(--text-sub);">-</span>`;
+        }
+
+        // Slip column content
+        let slipCol = '';
+        if (order.slipImage) {
+          slipCol = `<button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.85rem; border-color: var(--accent-cyan); color: var(--accent-cyan);" onclick="viewAdminSlip('${order.id}')">🔍 ดูสลิป</button>`;
+        } else {
+          slipCol = `<span style="font-size: 0.8rem; color: var(--text-sub);">${order.status === 'Pending' ? 'รอสลิปชำระเงิน' : '-'}</span>`;
+        }
+
+        // Coupon display details
+        let discDetails = '';
+        if (order.discountAmount > 0) {
+          discDetails = `<br><span style="font-size: 0.72rem; color: var(--accent-red);">หักลดคูปอง ${order.discountAmount.toFixed(2)} ฿</span>`;
+        }
+
+        row.innerHTML = `
+          <td><code style="font-family: monospace; color: var(--accent-cyan); font-weight: 700;">${order.id}</code></td>
+          <td><strong>@${order.username}</strong></td>
+          <td style="font-size: 0.85rem; max-width: 250px; line-height: 1.4;">${order.items.join('<br>')}</td>
+          <td style="font-size: 0.85rem; font-weight: 600; color: #fff;">${order.pickupTime || '-'}</td>
+          <td style="font-size: 0.85rem; color: var(--text-sub); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${order.notes || ''}">${order.notes || '-'}</td>
+          <td>
+            <strong style="color: var(--accent-green); font-family: monospace;">${(order.costPaid || order.totalPrice || 0).toFixed(2)} ฿</strong>
+            ${discDetails}
+          </td>
+          <td>${slipCol}</td>
+          <td><span style="font-weight: 600; color: var(--accent-cyan);">+${order.pointsEarned} Pts</span></td>
+          <td>${statusBadge}</td>
+          <td style="font-size: 0.8rem; color: var(--text-sub);">${dateStr}</td>
+          <td>${controls}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // Advance Status logic
+    function advanceOrder(orderId, nextStatus) {
+      try {
+        DB.adminUpdateOrderStatus(orderId, nextStatus);
+        loadOrders();
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด: ' + err.message);
+      }
+    }
+
+    // Reject and Refund logic
+    function rejectOrder(orderId) {
+      if (confirm('คุณแน่ใจหรือไม่ว่าต้องการยกเลิกและปฏิเสธรายการสั่งจองนี้? ระบบจะทำการดึงคะแนนสะสมที่เคยได้รับ (หากมี) คืนออกโดยอัตโนมัติ')) {
+        try {
+          DB.adminRejectOrder(orderId);
+          loadOrders();
+        } catch (err) {
+          alert('เกิดข้อผิดพลาด: ' + err.message);
+        }
+      }
+    }
+
+    function viewAdminSlip(orderId) {
+      const orders = DB.getOrders();
+      const order = orders.find(o => o.id === orderId);
+      if (order && order.slipImage) {
+        document.getElementById('adminModalSlipImage').src = order.slipImage;
+        document.getElementById('adminSlipViewModal').style.display = 'flex';
+      }
+    }
+
+    function closeAdminSlipModal() {
+      document.getElementById('adminSlipViewModal').style.display = 'none';
+    }
+
+    // Load initial
+    loadOrders();
+
+    // Storage updates sync
+    window.addEventListener('storage', () => {
+      loadOrders();
+    });
+  </script>
+
+  <!-- Modal for admin to view slip image -->
+  <div class="booking-modal" id="adminSlipViewModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center; z-index: 1000;">
+    <div class="glass-card" style="max-width: 400px; width: 90%; text-align: center; padding: 24px; position: relative;">
+      <h3 style="font-size: 1.2rem; margin-bottom: 16px; color: #fff;">ตรวจสอบสลิปชำระเงิน</h3>
+      <img id="adminModalSlipImage" src="" style="max-width: 100%; max-height: 450px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 20px;">
+      <button class="btn btn-secondary" onclick="closeAdminSlipModal()" style="width: 100%;">ปิดหน้าต่าง</button>
+    </div>
+  </div>
+</body>
+</html>

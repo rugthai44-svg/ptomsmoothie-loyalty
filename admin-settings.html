@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ตั้งค่าผู้ควบคุม - แอดมินร้านพี่ต้อม</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="admin-layout">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="#00f0ff">
+          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+        </svg>
+        <span class="neon-text-cyan">ADMIN PORTAL</span>
+      </div>
+      <nav class="admin-nav">
+        <ul>
+          <li class="admin-nav-item"><a href="admin-dashboard.html">📈 ภาพรวมระบบ (Overview)</a></li>
+          <li class="admin-nav-item"><a href="admin-orders.html">📦 ออเดอร์การสั่งจอง (Bookings)</a></li>
+          <li class="admin-nav-item"><a href="admin-members.html">👥 จัดการสมาชิก (Members)</a></li>
+          <li class="admin-nav-item"><a href="admin-scans.html">📷 ประวัติสะสมแต้ม (Scans)</a></li>
+          <li class="admin-nav-item active"><a href="admin-settings.html">⚙️ ตั้งค่าระบบ (Settings)</a></li>
+        </ul>
+      </nav>
+      <div style="padding: 24px;">
+        <button class="btn btn-secondary" onclick="logoutAdmin()" style="width: 100%; border-color: var(--accent-red); color: var(--accent-red);">
+          🚪 ออกจากระบบ
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-content">
+      
+      <header class="admin-header">
+        <div>
+          <h1 style="font-size: 1.8rem; font-weight: 800;">⚙️ ตั้งค่าโปรไฟล์และระบบแอดมิน</h1>
+          <p style="color: var(--text-sub); font-size: 0.9rem;">แก้ไขข้อมูลความปลอดภัยสำหรับบัญชีแอดมิน หรือรีเซ็ตข้อมูลทั้งหมดในร้านค้า</p>
+        </div>
+      </header>
+
+      <div style="display: grid; grid-template-columns: 1fr; gap: 24px; max-width: 800px;">
+        
+        <!-- Admin Profile Settings Card -->
+        <div class="glass-card">
+          <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 20px;">🛡️ ข้อมูลบัญชีผู้ดูแลระบบ (Admin Credentials)</h3>
+
+          <div id="errorBox" style="color: var(--accent-red); background: rgba(255, 56, 96, 0.1); border: 1px solid var(--accent-red); padding: 10px; border-radius: 8px; margin-bottom: 16px; display: none; font-size: 0.9rem; text-align: center;"></div>
+          <div id="successBox" style="color: var(--accent-green); background: rgba(57, 255, 20, 0.1); border: 1px solid var(--accent-green); padding: 10px; border-radius: 8px; margin-bottom: 16px; display: none; font-size: 0.9rem; text-align: center;"></div>
+
+          <form id="adminSettingsForm">
+            <div class="form-group">
+              <label class="form-label" for="adminNameInput">ชื่อจริงผู้ควบคุมระบบ</label>
+              <input class="form-input" type="text" id="adminNameInput" required>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label" for="adminEmailInput">อีเมลแอดมิน</label>
+              <input class="form-input" type="email" id="adminEmailInput" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="adminPassInput">รหัสผ่านความปลอดภัยใหม่ (ปล่อยว่างหากต้องการรหัสเดิม)</label>
+              <input class="form-input" type="password" id="adminPassInput" placeholder="ใส่รหัสผ่านแอดมินใหม่">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">บันทึกข้อมูลระบบ</button>
+          </form>
+        </div>
+
+        <!-- Dangerous zone card -->
+        <div class="glass-card" style="border-color: rgba(255, 56, 96, 0.3); box-shadow: 0 0 15px rgba(255, 56, 96, 0.05);">
+          <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--accent-red); margin-bottom: 8px;">⚠️ พื้นที่อันตรายมาก (Dangerous System Settings)</h3>
+          <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 20px;">การรีเซ็ตระบบจะเป็นการล้างประวัติสะสมแต้ม ลบสมาชิกทั้งหมด และหักแต้มสะสมออกอย่างถาวร ไม่สามารถกู้กลับคืนมาได้อีก</p>
+
+          <div style="background: rgba(255, 56, 96, 0.05); border: 1px solid rgba(255, 56, 96, 0.2); padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+            <p style="font-size: 0.85rem; color: var(--accent-red); font-weight: 600;">*โปรดระมัดระวังเป็นอย่างสูง</p>
+            <p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 4px;">ระบบสะสมแต้มและฐานข้อมูลทั้งหมดของร้านจะถูกล้างค่าเริ่มต้นใหม่ทั้งหมด</p>
+          </div>
+
+          <button class="btn btn-secondary" onclick="purgeDatabase()" style="border-color: var(--accent-red); color: #fff; background: rgba(255, 56, 96, 0.15); width: 100%; padding: 12px;">
+            🗑️ เคลียร์ฐานข้อมูลและรีเซ็ตระบบ
+          </button>
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <script src="db.js"></script>
+  <script>
+    // Security check
+    if (!DB.isAdminLoggedIn()) {
+      window.location.href = 'admin-login.html';
+    }
+
+    function logoutAdmin() {
+      DB.adminLogout();
+      window.location.href = 'admin-login.html';
+    }
+
+    // Populate credentials form fields
+    function initForm() {
+      const admin = JSON.parse(localStorage.getItem('ptom_admin'));
+      if (!admin) return;
+
+      document.getElementById('adminNameInput').value = admin.fullName;
+      document.getElementById('adminEmailInput').value = admin.email;
+    }
+
+    initForm();
+
+    const form = document.getElementById('adminSettingsForm');
+    const errorBox = document.getElementById('errorBox');
+    const successBox = document.getElementById('successBox');
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      errorBox.style.display = 'none';
+      successBox.style.display = 'none';
+
+      const fullName = document.getElementById('adminNameInput').value;
+      const email = document.getElementById('adminEmailInput').value;
+      const newPass = document.getElementById('adminPassInput').value;
+
+      try {
+        const adminObj = JSON.parse(localStorage.getItem('ptom_admin'));
+        adminObj.fullName = fullName;
+        adminObj.email = email;
+        if (newPass) {
+          if (newPass.length < 4) {
+            errorBox.textContent = 'รหัสผ่านแอดมินใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร';
+            errorBox.style.display = 'block';
+            return;
+          }
+          adminObj.password = newPass;
+        }
+
+        localStorage.setItem('ptom_admin', JSON.stringify(adminObj));
+        
+        successBox.textContent = 'อัปเดตข้อมูลบัญชีผู้ควบคุมระบบร้านสำเร็จเรียบร้อย!';
+        successBox.style.display = 'block';
+        
+        document.getElementById('adminPassInput').value = '';
+
+        // Log action
+        DB.logActivity('admin', 'อัปเดตข้อมูลผู้ดูแล', 'แก้ไขบัญชีแอดมินผู้ควบคุมหลัก');
+
+        // Scroll form into view
+        successBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.style.display = 'block';
+      }
+    });
+
+    // Wipe database function
+    function purgeDatabase() {
+      if (confirm('คุณต้องการรีเซ็ตประวัติสะสมแต้ม บัญชีลูกค้า และข้อมูลทั้งหมดจริงใช่หรือไม่? การดำเนินการล้างฐานข้อมูลนี้จะไม่สามารถย้อนกลับได้เป็นอันขาด!')) {
+        
+        // Remove DB items
+        localStorage.removeItem('ptom_users');
+        localStorage.removeItem('ptom_scans');
+        localStorage.removeItem('ptom_redemptions');
+        localStorage.removeItem('ptom_activity_logs');
+        localStorage.removeItem('ptom_current_user');
+        
+        // Trigger DB.js IIFE reloading
+        window.location.reload();
+        
+        alert('ฐานข้อมูลระบบร้านน้ำปั่นพี่ต้อมถูกเคลียร์และรีเซ็ตค่าเริ่มต้นเรียบร้อยแล้ว!');
+      }
+    }
+  </script>
+</body>
+</html>

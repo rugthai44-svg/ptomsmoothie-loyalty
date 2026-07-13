@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>จัดการสมาชิก - แอดมินร้านพี่ต้อม</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .search-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    /* Simple modal overlay for editing points */
+    .edit-modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(6, 11, 19, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .edit-modal.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .edit-modal-card {
+      width: 100%;
+      max-width: 400px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="admin-layout">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="#00f0ff">
+          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+        </svg>
+        <span class="neon-text-cyan">ADMIN PORTAL</span>
+      </div>
+      <nav class="admin-nav">
+        <ul>
+          <li class="admin-nav-item"><a href="admin-dashboard.html">📈 ภาพรวมระบบ (Overview)</a></li>
+          <li class="admin-nav-item"><a href="admin-orders.html">📦 ออเดอร์การสั่งจอง (Bookings)</a></li>
+          <li class="admin-nav-item active"><a href="admin-members.html">👥 จัดการสมาชิก (Members)</a></li>
+          <li class="admin-nav-item"><a href="admin-scans.html">📷 ประวัติสะสมแต้ม (Scans)</a></li>
+          <li class="admin-nav-item"><a href="admin-settings.html">⚙️ ตั้งค่าระบบ (Settings)</a></li>
+        </ul>
+      </nav>
+      <div style="padding: 24px;">
+        <button class="btn btn-secondary" onclick="logoutAdmin()" style="width: 100%; border-color: var(--accent-red); color: var(--accent-red);">
+          🚪 ออกจากระบบ
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-content">
+      
+      <header class="admin-header">
+        <div>
+          <h1 style="font-size: 1.8rem; font-weight: 800;">👥 จัดการสมาชิกทั้งหมด</h1>
+          <p style="color: var(--text-sub); font-size: 0.9rem;">ตรวจสอบข้อมูลสมาชิก แก้ไขแต้มสะสมด้วยตนเอง หรือ ลบบัญชีผู้ใช้งานในระบบ</p>
+        </div>
+      </header>
+
+      <!-- Member Actions / Search -->
+      <section class="glass-card" style="margin-bottom: 24px;">
+        <div class="search-row">
+          <div style="flex-grow: 1; max-width: 400px; position: relative;">
+            <input class="form-input" type="text" id="searchInput" placeholder="ค้นหาด้วยชื่อผู้ใช้, ชื่อ-นามสกุล หรือ อีเมล...">
+          </div>
+          <div style="font-size: 0.9rem; color: var(--text-sub);">
+            จำนวนสมาชิกทั้งหมด: <strong id="memberCountText" style="color: var(--accent-cyan);">0</strong> บัญชี
+          </div>
+        </div>
+
+        <!-- Members Table -->
+        <div class="custom-table-wrapper">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>ชื่อ-นามสกุล</th>
+                <th>ชื่อผู้ใช้ (Username)</th>
+                <th>อีเมล</th>
+                <th>แต้มปัจจุบัน</th>
+                <th>ระดับแรงค์</th>
+                <th>วันที่เข้าร่วม</th>
+                <th>การจัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="membersTableBody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+        
+        <div id="noMembersFoundMsg" style="text-align: center; color: var(--text-sub); padding: 40px 0; display: none;">ไม่พบข้อมูลสมาชิกตามที่ค้นหา</div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- Edit Points Modal -->
+  <div class="edit-modal" id="editPointsModal">
+    <div class="glass-card edit-modal-card">
+      <h3 style="font-size: 1.2rem; margin-bottom: 6px;">✏️ ปรับปรุงแต้มสะสมสมาชิก</h3>
+      <p style="color: var(--text-sub); font-size: 0.8rem; margin-bottom: 20px;" id="editModalSubtitle">ผู้ใช้: @somchai</p>
+
+      <form id="editPointsForm">
+        <div class="form-group">
+          <label class="form-label" for="newPointsInput">คะแนนสะสมที่ต้องการปรับ</label>
+          <input class="form-input" type="number" id="newPointsInput" min="0" max="9999" required>
+          <span style="font-size: 0.75rem; color: var(--text-sub); display: block; margin-top: 4px;">*แต้มที่ตั้งค่าจะคำนวณระดับแรงค์ใหม่ให้อัตโนมัติ</span>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="closeEditModal()">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary">บันทึกแต้มใหม่</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="db.js"></script>
+  <script>
+    // Security Session verification
+    if (!DB.isAdminLoggedIn()) {
+      window.location.href = 'admin-login.html';
+    }
+
+    function logoutAdmin() {
+      DB.adminLogout();
+      window.location.href = 'admin-login.html';
+    }
+
+    let allMembers = [];
+    let editingUser = null;
+
+    // Load and render list
+    function loadMembers() {
+      allMembers = DB.getUsers();
+      document.getElementById('memberCountText').textContent = allMembers.length;
+      renderTable(allMembers);
+    }
+
+    function renderTable(usersList) {
+      const tbody = document.getElementById('membersTableBody');
+      const noFoundMsg = document.getElementById('noMembersFoundMsg');
+      tbody.innerHTML = '';
+
+      if (usersList.length === 0) {
+        noFoundMsg.style.display = 'block';
+        return;
+      }
+      noFoundMsg.style.display = 'none';
+
+      usersList.forEach(user => {
+        const rankInfo = DB.getRank(user.points);
+        const joinDate = new Date(user.createdAt).toLocaleDateString('th-TH');
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td><strong>${user.fullName}</strong></td>
+          <td><span style="color: var(--text-sub);">@</span>${user.username}</td>
+          <td>${user.email}</td>
+          <td><strong class="neon-text-cyan" style="font-family: monospace;">${user.points} Pts</strong></td>
+          <td><span class="${rankInfo.class}">${rankInfo.logo} ${rankInfo.name}</span></td>
+          <td style="font-size: 0.85rem; color: var(--text-sub);">${joinDate}</td>
+          <td>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem; border-color: var(--accent-cyan); color: var(--accent-cyan);" onclick="openEditModal('${user.username}')">
+                ✏️ แก้ไขแต้ม
+              </button>
+              <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem; border-color: var(--accent-red); color: var(--accent-red);" onclick="deleteUserAccount('${user.username}')">
+                🗑️ ลบ
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // Search filter function
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', () => {
+      const val = searchInput.value.toLowerCase().trim();
+      if (!val) {
+        renderTable(allMembers);
+        return;
+      }
+
+      const filtered = allMembers.filter(user => 
+        user.username.toLowerCase().includes(val) ||
+        user.fullName.toLowerCase().includes(val) ||
+        user.email.toLowerCase().includes(val)
+      );
+      renderTable(filtered);
+    });
+
+    // Delete User
+    function deleteUserAccount(username) {
+      if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบบัญชีผู้ใช้ @${username} ออกจากระบบ? การลบนี้จะเป็นการทำลายแต้มสะสมทั้งหมดของลูกค้ารายนี้!`)) {
+        let users = DB.getUsers();
+        users = users.filter(u => u.username !== username);
+        DB.saveUsers(users);
+        
+        // Log Admin activity
+        DB.logActivity('admin', 'ลบผู้ใช้', `แอดมินลบบัญชีสมาชิก @${username} สำเร็จ`);
+        
+        loadMembers();
+      }
+    }
+
+    // Modal Points edit
+    const editModal = document.getElementById('editPointsModal');
+    const editModalSubtitle = document.getElementById('editModalSubtitle');
+    const newPointsInput = document.getElementById('newPointsInput');
+    const editPointsForm = document.getElementById('editPointsForm');
+
+    function openEditModal(username) {
+      editingUser = allMembers.find(u => u.username === username);
+      if (!editingUser) return;
+
+      editModalSubtitle.textContent = `สมาชิก: ${editingUser.fullName} (@${editingUser.username})`;
+      newPointsInput.value = editingUser.points;
+      
+      editModal.classList.add('show');
+    }
+
+    function closeEditModal() {
+      editModal.classList.remove('show');
+      editingUser = null;
+    }
+
+    // Save Point Overwrites Form
+    editPointsForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!editingUser) return;
+
+      const newPts = parseInt(newPointsInput.value, 10);
+      const oldPts = editingUser.points;
+
+      if (newPts === oldPts) {
+        closeEditModal();
+        return;
+      }
+
+      // Save points
+      const users = DB.getUsers();
+      const userIdx = users.findIndex(u => u.username === editingUser.username);
+      if (userIdx !== -1) {
+        users[userIdx].points = newPts;
+        DB.saveUsers(users);
+
+        // Log Admin activity
+        DB.logActivity('admin', 'ปรับแต่งคะแนนด้วยตนเอง', `แอดมินแก้ไขแต้มของ @${editingUser.username} จากเดิม ${oldPts} เป็น ${newPts} แต้ม`);
+        
+        closeEditModal();
+        loadMembers();
+      }
+    });
+
+    // Load initial
+    loadMembers();
+
+    // Listen to storage sync
+    window.addEventListener('storage', () => {
+      loadMembers();
+    });
+  </script>
+</body>
+</html>

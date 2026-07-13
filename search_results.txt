@@ -1,0 +1,26 @@
+
+==================================
+Searching for pattern: สแกน
+
+--- Found in admin-dashboard.html (2 matches) ---
+Line 45: <p style="color: var(--text-sub); font-size: 0.9rem;">ติดตามความเคลื่อนไหว กิจกรรมลูกค้า และสถิติการสแกนสะสมคะแนนแบบเรียลไทม์</p>
+Line 66: <p class="stat-title">สแกนแก้วสะสมรวม</p>
+
+--- Found in admin-scans.html (3 matches) ---
+Line 121: <h3 style="font-size: 1.15rem; color: var(--accent-cyan);" id="previewModalTitle">รูปสแกนสะสมแต้ม</h3>
+Line 171: <th>รหัสการสแกน</th>
+Line 190: const thumb = scan.photoData ? `<img src="${scan.photoData}" class="camera-thumbnail" alt="Thumb" style="cursor: zoom-in;" onclick="openPreviewModal('${scan.photoData}', 'รูปสแกนรับคะแนนของ @${scan.username}', '${dateStr}')">` : `<span style="font-size: 1.5rem;">🥤</span>`;
+
+--- Found in admin-settings.html (3 matches) ---
+Line 79: <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 20px;">การรีเซ็ตระบบจะเป็นการล้างประวัติการสแกน ลบสมาชิกทั้งหมด และหักแต้มสะสมออกอย่างถาวร ไม่สามารถกู้กลับคืนมาได้อีก</p>
+Line 83: <p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 4px;">ระบบจำลองการสแกนและฐานข้อมูลทั้งหมดของร้านจะถูกล้างค่าเริ่มต้นใหม่ทั้งหมด</p>
+Line 167: if (confirm('คุณต้องการรีเซ็ตประวัติการสแกน บัญชีลูกค้า และข้อมูลทั้งหมดจริงใช่หรือไม่? การดำเนินการล้างฐานข้อมูลนี้จะไม่สามารถย้อนกลับได้เป็นอันขาด!')) {
+
+--- Found in profile.html (1 matches) ---
+Line 118: <p style="font-size: 0.75rem; color: var(--text-sub);">สแกนสะสมแล้ว</p>
+
+==================================
+Searching for pattern: สแนป
+
+--- Found in admin-scans.html (1 matches) ---
+Line 170: <th>รูปภาพสแนป</th>

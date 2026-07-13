@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>รางวัลของฉัน - ร้านน้ำปั่นพี่ต้อม</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .voucher-card {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.1) 0%, rgba(16, 24, 40, 0.9) 100%);
+      border: 1px solid var(--accent-cyan);
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      margin-bottom: 30px;
+      position: relative;
+      overflow: hidden;
+    }
+    .voucher-card.locked {
+      background: var(--glass-bg);
+      border: 1px dashed var(--border-color);
+      box-shadow: none;
+    }
+    .voucher-badge-icon {
+      font-size: 3.5rem;
+      margin-bottom: 12px;
+      display: inline-block;
+      filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.4));
+    }
+    .voucher-card.locked .voucher-badge-icon {
+      filter: grayscale(1) opacity(0.3);
+    }
+    .grid-progress-card {
+      margin-bottom: 30px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="home.html" class="nav-logo">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 2c1.2 0 2.3.4 3.2 1.2l-1.4 1.4C13.2 4.2 12.6 4 12 4c-3.9 0-7 3.1-7 7 0 2.5 1.3 4.7 3.2 6H5.4c-1.9-1.3-3.2-3.5-3.2-6 0-5 4-9 9-9zm0 18c-3.9 0-7-3.1-7-7H3c0 5 4 9 9 9s9-4 9-9h-2c0 3.9-3.1 7-7 7zm5.2-13.8l-1.4 1.4c.8.9 1.2 2 1.2 3.2v5.4c0 1.9-1.3 3.5-3.2 4.8v2.1c3.1-1.3 5.2-4.1 5.2-7.5V11.4c0-1.8-.7-3.5-1.8-4.8zM12 7c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4z"/>
+      </svg>
+      <span>P'TOM SMOOTHIE</span>
+    </a>
+    
+    <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+
+    <ul class="nav-links" id="navLinks">
+      <li><a href="home.html" class="nav-link">หน้าแรก</a></li>
+      <li><a href="menu.html" class="nav-link">เมนูน้ำปั่น</a></li>
+      <li><a href="loyalty.html" class="nav-link">สะสมแต้ม</a></li>
+      <li><a href="rewards.html" class="nav-link active">รางวัลของฉัน</a></li>
+      <li><a href="profile.html" class="nav-link">โปรไฟล์</a></li>
+    </ul>
+
+    <div class="nav-user-info">
+      <div class="user-badge">
+        <span id="navRankEmoji">🥉</span>
+        <span id="navUserPoints" class="user-pts">0 แต้ม</span>
+      </div>
+      <button class="btn btn-secondary" onclick="logoutUser()" style="padding: 6px 12px; font-size: 0.85rem;">ออกจากระบบ</button>
+    </div>
+  </nav>
+
+  <!-- Content Layout -->
+  <main class="main-grid" style="max-width: 1200px; margin: 0 auto; padding: 40px 24px;">
+    
+    <!-- Left Column: Voucher Redeeming Details -->
+    <section>
+      <!-- Voucher Details -->
+      <div id="voucherContainer" class="voucher-card locked">
+        <!-- Rendered dynamically based on points -->
+      </div>
+
+      <!-- Cup Accumulation Grid Box -->
+      <div class="glass-card grid-progress-card">
+        <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+          🥤 การสะสมแก้วน้ำปั่นของคุณ (รอบปัจจุบัน)
+        </h3>
+        <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 24px;">ทุกๆ การสะสมครบ 10 แก้ว (100 แต้ม) จะปลดล็อกคูปองน้ำปั่นฟรีทันที 1 แก้ว</p>
+        
+        <div class="rewards-grid" id="cupsGrid">
+          <!-- 10 cup slots will generate here -->
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; font-size: 0.9rem;">
+          <span style="color: var(--text-sub);" id="remainingText">ขาดอีก 10 แก้วเพื่อแลกรางวัล</span>
+          <span id="ratioText" style="font-weight: 700; color: var(--accent-cyan);">0 / 10 แก้ว</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Redemption History Audit -->
+    <aside>
+      <div class="glass-card" style="height: 100%;">
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+          <span>🎟️ ประวัติการรับของรางวัล</span>
+          <span style="font-size: 0.8rem; color: var(--accent-green); font-weight: 500;" id="redeemedCount">0 รายการ</span>
+        </h3>
+
+        <div style="max-height: 480px; overflow-y: auto;" id="redemptionsScrollContainer">
+          <div class="custom-table-wrapper">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>รูปรับของ</th>
+                  <th>รายละเอียด</th>
+                  <th>วันเวลา</th>
+                </tr>
+              </thead>
+              <tbody id="redemptionTableBody">
+                <!-- Generated dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <div id="noRedemptionMsg" style="text-align: center; color: var(--text-sub); padding: 30px 0; display: none;">ยังไม่มีประวัติการแลกรับรางวัลน้ำปั่นฟรี</div>
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <script src="db.js"></script>
+  <script>
+    // Authentication guard
+    let currentUser = DB.getCurrentUser();
+    if (!currentUser) {
+      window.location.href = 'login.html';
+    }
+
+    // Toggle Mobile menu
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const navLinks = document.getElementById('navLinks');
+    mobileMenuBtn.addEventListener('click', () => {
+      navLinks.classList.toggle('show');
+    });
+
+    function logoutUser() {
+      DB.logout();
+      window.location.href = 'login.html';
+    }
+
+    // Update screen components
+    function renderRewardsPage() {
+      currentUser = DB.getCurrentUser();
+      if (!currentUser) return;
+
+      const pts = currentUser.points;
+      
+      // Update nav details
+      const rankInfo = DB.getRank(pts);
+      document.getElementById('navRankEmoji').textContent = rankInfo.logo;
+      document.getElementById('navUserPoints').textContent = `${pts} แต้ม`;
+
+      // 1. Voucher Card rendering logic
+      const vouchersAvailable = Math.floor(pts / 100);
+      const voucherContainer = document.getElementById('voucherContainer');
+      
+      if (vouchersAvailable > 0) {
+        voucherContainer.className = 'voucher-card';
+        voucherContainer.innerHTML = `
+          <div class="voucher-badge-icon">🥤</div>
+          <h2 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 6px;">ยินดีด้วย! คุณได้สิทธิ์น้ำปั่นฟรี</h2>
+          <p class="neon-text-green" style="font-weight: 700; margin-bottom: 12px; font-size: 1.1rem;">คุณมีคูปองสะสมครบแลกน้ำปั่นฟรี: ${vouchersAvailable} แก้ว</p>
+          <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 24px; max-width: 500px; margin-left: auto; margin-right: auto;">
+            กรุณาถ่ายรูปภาพแก้วน้ำปั่นที่ได้รับสิทธิ์ฟรี หรืออัปโหลดรูปภาพหลักฐานแก้วน้ำเพื่อใช้สิทธิ์และเปิดคูปองรับเครื่องดื่มฟรี
+          </p>
+          <a href="redemption.html" class="btn btn-success" style="padding: 12px 32px; font-size: 1.05rem;">แลกรางวัลเลยวันนี้</a>
+        `;
+      } else {
+        voucherContainer.className = 'voucher-card locked';
+        // Compute how many points needed
+        const pointsNeeded = 100 - pts;
+        voucherContainer.innerHTML = `
+          <div class="voucher-badge-icon">🔒</div>
+          <h2 style="font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; color: var(--text-sub);">คูปองเครื่องดื่มฟรียังคงถูกล็อก</h2>
+          <p style="color: var(--text-sub); font-size: 0.9rem; margin-bottom: 24px;">คุณต้องการเพิ่มอีก <span class="neon-text-cyan" style="font-weight: 700;">${pointsNeeded} แต้ม</span> เพื่อปลดล็อกของรางวัลฟรีแก้วถัดไป</p>
+          <button class="btn btn-secondary" disabled>ยังไม่สามารถแลกได้</button>
+        `;
+      }
+
+      // 2. 10 Cups Grid rendering logic
+      // Current block progress is points modulo 100
+      const currentProgressPoints = pts % 100;
+      const cupsFilled = Math.floor(currentProgressPoints / 10);
+      
+      const cupsGrid = document.getElementById('cupsGrid');
+      cupsGrid.innerHTML = '';
+
+      for (let i = 1; i <= 10; i++) {
+        const slot = document.createElement('div');
+        
+        if (i === 10) {
+          // Free Glass design
+          slot.className = 'cup-slot free-slot';
+          if (cupsFilled >= 10 || vouchersAvailable > 0) {
+            slot.className = 'cup-slot free-slot active';
+            slot.innerHTML = `🎁<span class="cup-number">FREE</span>`;
+          } else {
+            slot.innerHTML = `🎁<span class="cup-number">FREE</span>`;
+          }
+        } else {
+          // Normal glass design
+          slot.className = 'cup-slot';
+          if (i <= cupsFilled) {
+            slot.className = 'cup-slot active';
+            slot.innerHTML = `🥤<span class="cup-number">${i}</span>`;
+          } else {
+            slot.innerHTML = `⚫<span class="cup-number">${i}</span>`;
+          }
+        }
+        cupsGrid.appendChild(slot);
+      }
+
+      // Progress texts
+      const ratioText = document.getElementById('ratioText');
+      const remainingText = document.getElementById('remainingText');
+
+      ratioText.textContent = `${cupsFilled} / 10 แก้ว`;
+      
+      if (cupsFilled === 10 || vouchersAvailable > 0) {
+        remainingText.textContent = 'คูปองของคุณพร้อมใช้งานแลกดื่มได้เลย!';
+        remainingText.style.color = 'var(--accent-green)';
+      } else {
+        remainingText.textContent = `ขาดอีกเพียง ${10 - cupsFilled} แก้ว เพื่อรับน้ำปั่นแก้วฟรี!`;
+        remainingText.style.color = 'var(--text-sub)';
+      }
+
+      // 3. Redemption History
+      renderRedemptionHistory();
+    }
+
+    function renderRedemptionHistory() {
+      const redemptions = DB.getRedemptions(currentUser.username);
+      const tableBody = document.getElementById('redemptionTableBody');
+      const noRedemptionMsg = document.getElementById('noRedemptionMsg');
+      const redeemedCount = document.getElementById('redeemedCount');
+
+      tableBody.innerHTML = '';
+      redeemedCount.textContent = `${redemptions.length} รายการ`;
+
+      if (redemptions.length === 0) {
+        noRedemptionMsg.style.display = 'block';
+        return;
+      }
+      noRedemptionMsg.style.display = 'none';
+
+      redemptions.forEach(redeem => {
+        const dateObj = new Date(redeem.timestamp);
+        const dateStr = dateObj.toLocaleDateString('th-TH', { hour: '2-digit', minute: '2-digit' });
+
+        const row = document.createElement('tr');
+        
+        let imgTag = '';
+        if (redeem.photoData) {
+          imgTag = `<img src="${redeem.photoData}" class="camera-thumbnail" alt="Receipt Cup photo">`;
+        } else {
+          imgTag = `<span style="font-size: 1.5rem;">🎁</span>`;
+        }
+
+        row.innerHTML = `
+          <td>${imgTag}</td>
+          <td>
+            <span style="font-weight: 600; color: #fff;">แก้วน้ำฟรี 1 ใบ</span><br>
+            <span style="font-size: 0.75rem; color: var(--accent-red); font-family: monospace;">-${redeem.pointsDeducted} แต้ม</span>
+          </td>
+          <td style="font-size: 0.8rem; color: var(--text-sub);">${dateStr}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    renderRewardsPage();
+
+    // Listen to points state sync changes
+    window.addEventListener('storage', () => {
+      renderRewardsPage();
+    });
+  </script>
+</body>
+</html>

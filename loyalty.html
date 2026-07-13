@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ประวัติสะสมแต้ม - ร้านน้ำปั่นพี่ต้อม</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .loyalty-dashboard-wrapper {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .timeline-container {
+      margin-top: 24px;
+    }
+
+    .timeline-item {
+      display: flex;
+      gap: 16px;
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+      align-items: center;
+      transition: background-color 0.2s ease;
+    }
+
+    .timeline-item:hover {
+      background: rgba(0, 240, 255, 0.02);
+    }
+
+    .timeline-icon {
+      font-size: 1.8rem;
+      width: 48px;
+      height: 48px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .timeline-content {
+      flex-grow: 1;
+    }
+
+    .timeline-points {
+      font-family: monospace;
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--accent-cyan);
+      text-shadow: 0 0 5px rgba(0, 240, 255, 0.3);
+      flex-shrink: 0;
+    }
+
+    .timeline-item:last-child {
+      border-bottom: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="home.html" class="nav-logo">
+      <svg viewBox="0 0 24 24">
+        <path
+          d="M12 2c1.2 0 2.3.4 3.2 1.2l-1.4 1.4C13.2 4.2 12.6 4 12 4c-3.9 0-7 3.1-7 7 0 2.5 1.3 4.7 3.2 6H5.4c-1.9-1.3-3.2-3.5-3.2-6 0-5 4-9 9-9zm0 18c-3.9 0-7-3.1-7-7H3c0 5 4 9 9 9s9-4 9-9h-2c0 3.9-3.1 7-7 7zm5.2-13.8l-1.4 1.4c.8.9 1.2 2 1.2 3.2v5.4c0 1.9-1.3 3.5-3.2 4.8v2.1c3.1-1.3 5.2-4.1 5.2-7.5V11.4c0-1.8-.7-3.5-1.8-4.8zM12 7c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4z" />
+      </svg>
+      <span>P'TOM SMOOTHIE</span>
+    </a>
+
+    <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+
+    <ul class="nav-links" id="navLinks">
+      <li><a href="home.html" class="nav-link">หน้าแรก</a></li>
+      <li><a href="menu.html" class="nav-link">เมนูน้ำปั่น</a></li>
+      <li><a href="loyalty.html" class="nav-link active">สะสมแต้ม</a></li>
+      <li><a href="rewards.html" class="nav-link">รางวัลของฉัน</a></li>
+      <li><a href="profile.html" class="nav-link">โปรไฟล์</a></li>
+    </ul>
+
+    <div class="nav-user-info">
+      <div class="user-badge">
+        <span id="navRankEmoji">🥉</span>
+        <span id="navUserPoints" class="user-pts">0 แต้ม</span>
+      </div>
+      <button class="btn btn-secondary" onclick="logoutUser()"
+        style="padding: 6px 12px; font-size: 0.85rem;">ออกจากระบบ</button>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <main style="max-width: 900px; margin: 0 auto; padding: 40px 24px;">
+
+    <div class="loyalty-dashboard-wrapper">
+
+      <!-- Rank Summary Card -->
+      <section class="glass-card" style="margin-bottom: 24px; text-align: center; padding: 30px 24px;">
+        <h3
+          style="font-size: 1.1rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
+          คะแนน & เลเวลความเก๋าของคุณ
+        </h3>
+
+        <div id="rankBadgeContainer" class="rank-badge-large" style="width: 100px; height: 100px; font-size: 3.2rem;">
+          🥉
+        </div>
+
+        <h2 id="rankNameText" style="font-size: 1.5rem; font-weight: 800; margin-bottom: 4px;">Bronze</h2>
+        <p style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 16px;" id="totalPointsText">ยอดสะสม: 0 แต้ม
+        </p>
+
+        <div style="text-align: left; width: 100%; max-width: 500px; margin: 0 auto;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+            <span style="color: var(--text-sub);">ความก้าวหน้าระดับถัดไป</span>
+            <span id="rankProgressText" style="font-weight: 600;">0 / 100</span>
+          </div>
+          <!-- Custom Progress Bar -->
+          <div
+            style="height: 10px; background: var(--bg-secondary); border-radius: 5px; overflow: hidden; border: 1px solid var(--border-color);">
+            <div id="rankProgressBar"
+              style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green)); transition: width 0.5s ease;">
+            </div>
+          </div>
+          <p id="nextRankNotice"
+            style="font-size: 0.8rem; color: var(--text-sub); margin-top: 8px; text-align: center;"></p>
+        </div>
+      </section>
+
+      <!-- Slip Upload Card for Points Accumulation -->
+      <section class="glass-card" style="margin-bottom: 24px; padding: 24px;">
+        <h3
+          style="font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; color: var(--accent-cyan); text-shadow: 0 0 10px rgba(0, 240, 255, 0.2); display: flex; align-items: center; gap: 8px;">
+          <span>📤 อัปโหลดสลิปสะสมแต้มกรณีไม่ได้สั่งผ่านสั่งจองผ่านเว็บไซต์ (+10 แต้ม)</span>
+        </h3>
+        <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 20px;">
+          ซื้อเครื่องดื่มหน้าร้านแล้วได้รับสลิป? อัปโหลดรูปภาพสลิปโอนเงินของคุณล่าสุดเพื่อส่งตรวจสอบสะสมแต้ม</p>
+
+        <div
+          style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px;">
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="form-label" style="font-weight: 600;">📤 เลือกรูปภาพสลิปการโอนเงิน:</label>
+            <input type="file" id="pointsSlipFileInput" accept="image/*" class="form-input"
+              style="padding: 10px; cursor: pointer;">
+            <div id="pointsSlipPreviewContainer" style="margin-top: 16px; text-align: center; display: none;">
+              <img id="pointsSlipPreviewImage" src=""
+                style="max-width: 100%; max-height: 200px; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 0 15px rgba(0,240,255,0.15);">
+            </div>
+          </div>
+
+          <p style="font-size: 0.78rem; color: var(--accent-cyan); margin-top: 12px; line-height: 1.4;">
+            *ระบบจะทำการ<strong>ตรวจสอบไฟล์สลิปโดยอัตโนมัติ</strong> (ป้องกันการวนใช้สลิปเก่า)
+            โดยจะรองรับเฉพาะไฟล์รูปภาพสลิปที่บันทึกล่าสุดเป็น<strong>วันปัจจุบันและเวลาไม่เกิน 30 นาที</strong> เท่านั้น
+          </p>
+        </div>
+
+        <button id="submitPointsSlipBtn" class="btn btn-success"
+          style="width: 100%; margin-top: 16px; font-size: 1.05rem; padding: 12px; font-weight: 700;">
+          ✅ ส่งสลิปและสะสมแต้ม
+        </button>
+      </section>
+
+      <!-- My Bookings Section -->
+      <section class="glass-card" style="margin-bottom: 24px; padding: 24px;">
+        <h3
+          style="font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+          <span>📋 รายการสั่งจองเครื่องดื่มของฉัน (My Bookings)</span>
+          <span style="font-size: 0.85rem; color: var(--accent-cyan); font-weight: 500;" id="bookingsCount">0 รายการ</span>
+        </h3>
+
+        <div id="bookingsListContainer">
+          <!-- Dynamically populated bookings -->
+        </div>
+
+        <div id="noBookingsMsg" style="text-align: center; color: var(--text-sub); padding: 20px 0; display: none; font-size: 0.9rem;">
+          ยังไม่มีประวัติการสั่งจองเครื่องดื่มของคุณ สั่งเลยวันนี้!
+        </div>
+      </section>
+
+      <!-- Points Statement Log -->
+      <section class="glass-card">
+        <h3
+          style="font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+          <span>📋 ประวัติการได้รับคะแนนสะสม (Points Statement)</span>
+          <span style="font-size: 0.85rem; color: var(--accent-cyan); font-weight: 500;" id="historyCount">0
+            รายการ</span>
+        </h3>
+
+        <div class="timeline-container" id="pointsTimeline">
+          <!-- Dynamically populated timeline -->
+        </div>
+
+        <div id="noHistoryMsg" style="text-align: center; color: var(--text-sub); padding: 40px 0; display: none;">
+          ยังไม่มีประวัติการได้รับคะแนนสะสม ส่งรายการจองเครื่องดื่มสะสมแต้มได้เลยวันนี้!
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <script src="db.js"></script>
+  <script>
+    // Authentication guard
+    let currentUser = DB.getCurrentUser();
+    if (!currentUser) {
+      window.location.href = 'login.html';
+    }
+
+    // Toggle Mobile menu
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const navLinks = document.getElementById('navLinks');
+    mobileMenuBtn.addEventListener('click', () => {
+      navLinks.classList.toggle('show');
+    });
+
+    function logoutUser() {
+      DB.logout();
+      window.location.href = 'login.html';
+    }
+
+    // Render user profile dashboard info
+    function renderUserProfile() {
+      currentUser = DB.getCurrentUser(); // fetch fresh data
+      if (!currentUser) return;
+
+      const pts = currentUser.points;
+      const rankInfo = DB.getRank(pts);
+
+      // Nav elements update
+      document.getElementById('navRankEmoji').textContent = rankInfo.logo;
+      document.getElementById('navUserPoints').textContent = `${pts} แต้ม`;
+
+      // Profile Panel
+      document.getElementById('rankBadgeContainer').className = `rank-badge-large ${rankInfo.class}`;
+      document.getElementById('rankBadgeContainer').textContent = rankInfo.logo;
+      document.getElementById('rankNameText').textContent = rankInfo.name;
+      document.getElementById('rankNameText').className = rankInfo.class;
+      document.getElementById('totalPointsText').textContent = `ยอดสะสม: ${pts} แต้ม (10 แต้ม = 1 แก้ว)`;
+
+      // Progress bar math
+      let prevThreshold = 0;
+      if (pts >= 800) {
+        prevThreshold = 800;
+      } else if (pts >= 500) {
+        prevThreshold = 500;
+      } else if (pts >= 300) {
+        prevThreshold = 300;
+      } else if (pts >= 100) {
+        prevThreshold = 100;
+      }
+
+      const nextThreshold = rankInfo.nextThreshold;
+      if (nextThreshold === Infinity) {
+        document.getElementById('rankProgressText').textContent = 'MAX LEVEL';
+        document.getElementById('rankProgressBar').style.width = '100%';
+        document.getElementById('nextRankNotice').textContent = 'ยินดีด้วย! คุณอยู่ในแรงค์สูงสุดของร้านพี่ต้อม';
+      } else {
+        const range = nextThreshold - prevThreshold;
+        const progress = pts - prevThreshold;
+        const percent = Math.min(100, Math.max(0, (progress / range) * 100));
+
+        document.getElementById('rankProgressText').textContent = `${pts} / ${nextThreshold}`;
+        document.getElementById('rankProgressBar').style.width = `${percent}%`;
+        document.getElementById('nextRankNotice').textContent = `อีกเพียง ${nextThreshold - pts} แต้ม เพื่อเลื่อนขึ้นแรงค์ระดับถัดไป`;
+      }
+    }
+
+    // Render points logs from scans table
+    function renderPointsStatement() {
+      const history = DB.getScans(currentUser.username);
+      const container = document.getElementById('pointsTimeline');
+      const noHistoryMsg = document.getElementById('noHistoryMsg');
+      const historyCount = document.getElementById('historyCount');
+
+      container.innerHTML = '';
+
+      if (history.length === 0) {
+        if (currentUser.points > 0) {
+          // Add fallback entry for manual points adjustments or system migration
+          const timelineItem = document.createElement('div');
+          timelineItem.className = 'timeline-item';
+          timelineItem.innerHTML = `
+            <div class="timeline-icon">✨</div>
+            <div class="timeline-content">
+              <h4 style="font-weight: 700; color: #fff; margin-bottom: 2px;">คะแนนสะสมยอดยกมา / ปรับปรุงแต้มในระบบ</h4>
+              <p style="font-size: 0.78rem; color: var(--text-sub);">บันทึกยอดยกมาจากผู้ดูแลระบบ</p>
+            </div>
+            <div class="timeline-points">+${currentUser.points} แต้ม</div>
+          `;
+          container.appendChild(timelineItem);
+          historyCount.textContent = '1 รายการ';
+          noHistoryMsg.style.display = 'none';
+        } else {
+          historyCount.textContent = '0 รายการ';
+          noHistoryMsg.style.display = 'block';
+        }
+        return;
+      }
+
+      noHistoryMsg.style.display = 'none';
+      historyCount.textContent = `${history.length} รายการ`;
+
+      history.forEach(item => {
+        if (!item) return;
+        const dateObj = new Date(item.timestamp);
+        let dateStr = 'ไม่ระบุเวลา';
+        if (item.timestamp && !isNaN(dateObj.getTime())) {
+          dateStr = dateObj.toLocaleDateString('th-TH', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+          });
+        }
+
+        const timelineItem = document.createElement('div');
+        timelineItem.className = 'timeline-item';
+
+        // Icon based on type
+        const desc = item.description || 'ได้รับคะแนนสะสม';
+        const icon = typeof desc === 'string' && desc.includes('จอง') ? '🥤' : '✨';
+
+        timelineItem.innerHTML = `
+          <div class="timeline-icon">${icon}</div>
+          <div class="timeline-content">
+            <h4 style="font-weight: 700; color: #fff; margin-bottom: 2px;">${desc}</h4>
+            <p style="font-size: 0.78rem; color: var(--text-sub);">${dateStr}</p>
+          </div>
+          <div class="timeline-points">+${item.pointsGained || 0} แต้ม</div>
+        `;
+        container.appendChild(timelineItem);
+      });
+    }
+
+    // Slip Upload for Points Accumulation
+    const pointsSlipFileInput = document.getElementById('pointsSlipFileInput');
+    const pointsSlipPreviewContainer = document.getElementById('pointsSlipPreviewContainer');
+    const pointsSlipPreviewImage = document.getElementById('pointsSlipPreviewImage');
+    const submitPointsSlipBtn = document.getElementById('submitPointsSlipBtn');
+
+    let uploadedPointsPhotoData = '';
+
+    pointsSlipFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (evt) {
+          uploadedPointsPhotoData = evt.target.result;
+          pointsSlipPreviewImage.src = uploadedPointsPhotoData;
+          pointsSlipPreviewContainer.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        uploadedPointsPhotoData = '';
+        pointsSlipPreviewContainer.style.display = 'none';
+      }
+    });
+
+    submitPointsSlipBtn.addEventListener('click', () => {
+      submitPointsSlipBtn.disabled = true;
+
+      if (!uploadedPointsPhotoData) {
+        alert('กรุณาอัปโหลดรูปภาพสลิปก่อนสะสมแต้ม!');
+        submitPointsSlipBtn.disabled = false;
+        return;
+      }
+
+      try {
+        const file = pointsSlipFileInput.files[0];
+        if (!file) {
+          alert('ไม่พบไฟล์สลิปที่อัปโหลด!');
+          submitPointsSlipBtn.disabled = false;
+          return;
+        }
+
+        // Anti-cheat verification (Using file metadata lastModified)
+        const slipTimeMs = file.lastModified;
+        const slipDate = new Date(slipTimeMs);
+        const now = new Date();
+
+        // 1. Verify Date
+        if (slipDate.toDateString() !== now.toDateString()) {
+          alert('วันที่บันทึกไฟล์สลิปนี้ไม่ใช่ของวันนี้! กรุณาใช้สลิปโอนเงินล่าสุดที่เป็นของวันนี้เท่านั้น');
+          submitPointsSlipBtn.disabled = false;
+          return;
+        }
+
+        // 2. Verify Time
+        const diffTimeMs = Math.abs(now.getTime() - slipTimeMs);
+        const diffMinutes = diffTimeMs / 60000;
+
+        if (diffMinutes > 30) {
+          alert('ไฟล์สลิปนี้ถูกสร้าง/แก้ไขไว้นานเกิน 30 นาทีแล้ว! กรุณาใช้สลิปล่าสุดที่โอนเงินสดหน้าร้านเพื่อสะสมแต้ม');
+          submitPointsSlipBtn.disabled = false;
+          return;
+        }
+
+        // 3. Award Points
+        DB.addPoints(currentUser.username, 10, 'สะสมแต้มจากรูปสลิปโอนเงิน', uploadedPointsPhotoData);
+
+        // Play beep sound
+        try {
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+          osc.start();
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+          osc.stop(audioCtx.currentTime + 0.2);
+        } catch (e) { }
+
+        alert('อัปโหลดหลักฐานสลิปสะสมแต้ม +10 แต้มสำเร็จ!');
+
+        // Reset Form
+        pointsSlipFileInput.value = '';
+        uploadedPointsPhotoData = '';
+        pointsSlipPreviewContainer.style.display = 'none';
+
+        // Refresh UI
+        renderUserProfile();
+        renderPointsStatement();
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด: ' + err.message);
+      } finally {
+        submitPointsSlipBtn.disabled = false;
+      }
+    });
+
+    // Render My Bookings
+    function renderMyBookings() {
+      const orders = DB.getOrders(currentUser.username);
+      const container = document.getElementById('bookingsListContainer');
+      const noBookingsMsg = document.getElementById('noBookingsMsg');
+      const bookingsCount = document.getElementById('bookingsCount');
+
+      container.innerHTML = '';
+      bookingsCount.textContent = `${orders.length} รายการ`;
+
+      if (orders.length === 0) {
+        noBookingsMsg.style.display = 'block';
+        return;
+      }
+      noBookingsMsg.style.display = 'none';
+
+      orders.forEach(order => {
+        const dateObj = new Date(order.timestamp);
+        const dateStr = dateObj.toLocaleDateString('th-TH', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        let statusBadge = '';
+        let actionHTML = '';
+
+        if (order.status === 'Pending') {
+          statusBadge = `<span class="order-status-badge" style="color: #ffd700; border: 1px solid #ffd700; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: rgba(255, 215, 0, 0.05);">รอชำระเงิน</span>`;
+          actionHTML = `
+            <div style="margin-top: 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px;">
+              <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 8px;">
+                <strong>วิธีชำระเงิน:</strong> สแกน QR Code ด้านล่าง ยอดชำระ <strong>${order.totalPrice.toFixed(2)} ฿</strong>
+              </p>
+              
+              <!-- Mock PromptPay QR -->
+              <div style="background: #fff; padding: 6px; border-radius: 6px; display: inline-block; margin-bottom: 12px; border: 1px solid var(--border-color);">
+                <svg width="90" height="90" viewBox="0 0 100 100" style="display: block;">
+                  <rect width="100" height="100" fill="#fff"/>
+                  <rect x="5" y="5" width="25" height="25" fill="#003b66" />
+                  <rect x="8" y="8" width="19" height="19" fill="#fff" />
+                  <rect x="12" y="12" width="11" height="11" fill="#003b66" />
+                  <rect x="70" y="5" width="25" height="25" fill="#003b66" />
+                  <rect x="73" y="8" width="19" height="19" fill="#fff" />
+                  <rect x="77" y="12" width="11" height="11" fill="#003b66" />
+                  <rect x="5" y="70" width="25" height="25" fill="#003b66" />
+                  <rect x="8" y="73" width="19" height="19" fill="#fff" />
+                  <rect x="12" y="77" width="11" height="11" fill="#003b66" />
+                  <rect x="40" y="40" width="20" height="20" fill="#003b66" />
+                  <rect x="45" y="45" width="10" height="10" fill="#fff" />
+                  <text x="50" y="53" font-size="8" font-weight="bold" fill="#003b66" text-anchor="middle">PP</text>
+                  <rect x="40" y="10" width="5" height="15" fill="#111" />
+                  <rect x="50" y="70" width="10" height="15" fill="#111" />
+                  <rect x="70" y="40" width="10" height="10" fill="#111" />
+                </svg>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 10px;">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">อัปโหลดสลิปชำระเงิน:</label>
+                <input type="file" id="input-slip-${order.id}" accept="image/*" class="form-input" style="padding: 6px; font-size: 0.8rem; cursor: pointer;">
+              </div>
+              <button class="btn btn-primary" style="width: 100%; padding: 8px; font-size: 0.85rem;" onclick="uploadOrderSlipFromDashboard('${order.id}')">
+                ✅ ส่งสลิปชำระเงิน
+              </button>
+            </div>
+          `;
+        } else if (order.status === 'Verifying') {
+          statusBadge = `<span class="order-status-badge" style="color: var(--accent-cyan); border: 1px solid var(--accent-cyan); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: rgba(0, 240, 255, 0.05);">รอตรวจสอบสลิป</span>`;
+          actionHTML = `
+            <div style="margin-top: 10px; font-size: 0.8rem; color: var(--text-sub);">
+              อัปโหลดสลิปเรียบร้อยแล้ว แอดมินกำลังทำการตรวจสอบความถูกต้องเพื่อมอบแต้มสะสม (+${order.pointsEarned} แต้ม) และดำเนินการปรุงปั่น
+              <br>
+              <a href="#" style="color: var(--accent-cyan); text-decoration: underline; display: inline-block; margin-top: 4px;" onclick="viewSlipImage('${order.id}')">🔍 ดูสลิปที่ส่งแล้ว</a>
+            </div>
+          `;
+        } else if (order.status === 'Preparing') {
+          statusBadge = `<span class="order-status-badge" style="color: var(--accent-cyan); border: 1px solid var(--accent-cyan); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: rgba(0, 240, 255, 0.05);">กำลังปรุงปั่น</span>`;
+          actionHTML = `<p style="font-size: 0.8rem; color: var(--accent-green); margin-top: 8px;">ชำระเงินเสร็จสิ้นและรับแต้มสะสมเรียบร้อย (+${order.pointsEarned} แต้ม)! กำลังอยู่ในขั้นตอนปรุงปั่นเครื่องดื่ม</p>`;
+        } else if (order.status === 'Ready') {
+          statusBadge = `<span class="order-status-badge" style="color: var(--accent-green); border: 1px solid var(--accent-green); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: rgba(57, 255, 20, 0.05);">พร้อมรับดื่ม</span>`;
+          actionHTML = `<p style="font-size: 0.8rem; color: var(--accent-green); margin-top: 8px;">เครื่องดื่มปั่นเสร็จเรียบร้อย! กรุณาติดต่อรับเครื่องดื่มที่เคาน์เตอร์ได้ทันที</p>`;
+        } else if (order.status === 'Completed') {
+          statusBadge = `<span class="order-status-badge" style="color: #64748b; border: 1px solid #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: rgba(100, 116, 139, 0.05);">สำเร็จแล้ว</span>`;
+          actionHTML = `<p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 8px;">รับเครื่องดื่มและสะสมแต้มสำเร็จแล้ว ขอบคุณที่ใช้บริการค่ะ</p>`;
+        } else if (order.status === 'Rejected') {
+          statusBadge = `<span class="order-status-badge" style="color: var(--accent-red); border: 1px solid var(--accent-red); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: rgba(255, 56, 96, 0.05);">ยกเลิกรายการ</span>`;
+          actionHTML = `<p style="font-size: 0.8rem; color: var(--accent-red); margin-top: 8px;">รายการสั่งซื้อนี้ถูกปฏิเสธ (เช่น สลิปไม่ถูกต้อง)</p>`;
+        }
+
+        const card = document.createElement('div');
+        card.className = 'glass-card';
+        card.style.marginBottom = '16px';
+        card.style.background = 'rgba(10, 18, 32, 0.5)';
+        card.style.border = '1px solid rgba(0, 240, 255, 0.08)';
+        card.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 10px;">
+            <div>
+              <strong style="color: var(--accent-cyan); font-family: monospace;">${order.id}</strong>
+              <span style="font-size: 0.78rem; color: var(--text-sub); margin-left: 8px;">${dateStr}</span>
+            </div>
+            <div>${statusBadge}</div>
+          </div>
+          <div style="font-size: 0.9rem; line-height: 1.4; color: #fff;">
+            <strong>เมนู:</strong> ${order.items.join(', ')}
+          </div>
+          <div style="font-size: 0.9rem; margin-top: 4px; color: var(--text-sub);">
+            <strong>เวลานัดรับ:</strong> ${order.pickupTime} | <strong>ยอดชำระ:</strong> <span style="color: var(--accent-green); font-weight: bold;">${order.totalPrice.toFixed(2)} ฿</span>
+          </div>
+          ${actionHTML}
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function uploadOrderSlipFromDashboard(orderId) {
+      const fileInput = document.getElementById(`input-slip-${orderId}`);
+      if (!fileInput || !fileInput.files[0]) {
+        alert('กรุณาเลือกไฟล์สลิปชำระเงินก่อนส่ง!');
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const base64Data = evt.target.result;
+        try {
+          DB.uploadOrderSlip(orderId, base64Data);
+          alert('อัปโหลดสลิปชำระเงินสำเร็จ! กรุณารอแอดมินตรวจสอบเพื่ออนุมัติรับแต้ม');
+          renderUserProfile();
+          renderPointsStatement();
+          renderMyBookings();
+        } catch (err) {
+          alert('เกิดข้อผิดพลาด: ' + err.message);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function viewSlipImage(orderId) {
+      const orders = DB.getOrders();
+      const order = orders.find(o => o.id === orderId);
+      if (order && order.slipImage) {
+        document.getElementById('modalSlipImage').src = order.slipImage;
+        document.getElementById('slipViewModal').classList.add('show');
+      }
+    }
+
+    function closeSlipViewModal() {
+      document.getElementById('slipViewModal').classList.remove('show');
+    }
+
+    // Initial load
+    renderUserProfile();
+    renderPointsStatement();
+    renderMyBookings();
+
+    // Sync state changes across tabs
+    window.addEventListener('storage', () => {
+      renderUserProfile();
+      renderPointsStatement();
+      renderMyBookings();
+    });
+  </script>
+
+  <!-- Modal for viewing slip image -->
+  <div class="booking-modal" id="slipViewModal" style="z-index: 110;">
+    <div class="glass-card" style="max-width: 400px; width: 90%; text-align: center; padding: 20px;">
+      <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: #fff;">รูปภาพสลิปชำระเงิน</h3>
+      <img id="modalSlipImage" src="" style="max-width: 100%; max-height: 400px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+      <button class="btn btn-secondary" onclick="closeSlipViewModal()" style="width: 100%;">ปิดหน้าต่าง</button>
+    </div>
+  </div>
+</body>
+
+</html>

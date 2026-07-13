@@ -1,0 +1,14 @@
+{
+  "name": "ptom-smoothie-loyalty",
+  "version": "1.0.0",
+  "description": "Loyalty Program Web App for P'Tom's Smoothie Shop in Tech-Organic Dark Mode",
+  "main": "login.html",
+  "scripts": {
+    "dev": "lite-server"
+  },
+  "devDependencies": {
+    "lite-server": "^2.6.1"
+  },
+  "author": "Antigravity",
+  "license": "ISC"
+}

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เข้าสู่ระบบแอดมิน - ร้านน้ำปั่นพี่ต้อม</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Floating background -->
+  <canvas id="fruitCanvas" class="canvas-bg"></canvas>
+
+  <div class="auth-container">
+    <div class="glass-card auth-card" style="border-color: rgba(255, 56, 96, 0.25); box-shadow: 0 0 20px rgba(255, 56, 96, 0.1);">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48" fill="#ff3860" style="filter: drop-shadow(0 0 8px #ff3860);">
+          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+        </svg>
+      </div>
+      <h2 class="auth-title" style="color: var(--accent-red); text-shadow: 0 0 8px rgba(255,56,96,0.4);">ADMIN TERMINAL</h2>
+      <p class="auth-subtitle">ระบบควบคุมและตรวจสอบความเคลื่อนไหวร้านน้ำปั่นพี่ต้อม</p>
+
+      <div id="errorBox" style="color: var(--accent-red); background: rgba(255, 56, 96, 0.1); border: 1px solid var(--accent-red); padding: 10px; border-radius: 8px; margin-bottom: 16px; display: none; font-size: 0.9rem; text-align: center;"></div>
+
+      <form id="adminLoginForm">
+        <div class="form-group">
+          <label class="form-label" for="emailInput">อีเมลแอดมิน</label>
+          <input class="form-input" type="email" id="emailInput" placeholder="admin@gmail.com" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="passwordInput">รหัสความปลอดภัย</label>
+          <input class="form-input" type="password" id="passwordInput" placeholder="กรอกรหัสผ่าน (1234)" required>
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: -10px; margin-bottom: 16px;">
+          <input type="checkbox" id="rememberAdminInput" style="width: 16px; height: 16px; accent-color: var(--accent-red); cursor: pointer;">
+          <label for="rememberAdminInput" style="color: var(--text-sub); font-size: 0.85rem; cursor: pointer; user-select: none;">จดจำรหัสผ่านผู้ดูแลระบบ</label>
+        </div>
+
+        <button type="submit" class="btn btn-success" style="width: 100%; border-color: var(--accent-red); background: linear-gradient(135deg, rgba(255, 56, 96, 0.2) 0%, rgba(255, 56, 96, 0.05) 100%); color: #fff; font-size: 1.05rem;" id="loginBtn">เข้าสู่ระบบควบคุม</button>
+      </form>
+
+      <div style="margin-top: 24px; text-align: center; font-size: 0.9rem;">
+        <a href="login.html" style="color: var(--text-sub); text-decoration: none;">← ย้อนกลับหน้าเข้าสู่ระบบลูกค้า</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="db.js"></script>
+  <script>
+    // Redirect if already logged in as admin
+    if (DB.isAdminLoggedIn()) {
+      window.location.href = 'admin-dashboard.html';
+    }
+
+    // Autocomplete remembered admin credentials
+    const rememberedAdmin = localStorage.getItem('ptom_remember_admin');
+    if (rememberedAdmin) {
+      const data = JSON.parse(rememberedAdmin);
+      document.getElementById('emailInput').value = data.email;
+      document.getElementById('passwordInput').value = data.password;
+      document.getElementById('rememberAdminInput').checked = true;
+    }
+
+    const adminLoginForm = document.getElementById('adminLoginForm');
+    const errorBox = document.getElementById('errorBox');
+
+    adminLoginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      errorBox.style.display = 'none';
+
+      const email = document.getElementById('emailInput').value;
+      const pass = document.getElementById('passwordInput').value;
+      const rememberAdmin = document.getElementById('rememberAdminInput').checked;
+
+      const success = DB.adminLogin(email, pass);
+
+      if (success) {
+        if (rememberAdmin) {
+          localStorage.setItem('ptom_remember_admin', JSON.stringify({
+            email: email,
+            password: pass
+          }));
+        } else {
+          localStorage.removeItem('ptom_remember_admin');
+        }
+        window.location.href = 'admin-dashboard.html';
+      } else {
+        errorBox.textContent = 'อีเมลผู้ควบคุมหรือรหัสผ่านความปลอดภัยไม่ถูกต้อง';
+        errorBox.style.display = 'block';
+      }
+    });
+
+    // Canvas falling fruits code
+    const canvas = document.getElementById('fruitCanvas');
+    const ctx = canvas.getContext('2d');
+    let fruits = [];
+    const emojiList = ['🍓', '🥑', '🥭', '🥥', '🍉', '🍍', '🍊', '🍌'];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class FloatingFruit {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = canvas.height + Math.random() * 100;
+        this.size = Math.random() * 20 + 20;
+        this.speed = Math.random() * 1.5 + 0.5;
+        this.emoji = emojiList[Math.floor(Math.random() * emojiList.length)];
+        this.opacity = Math.random() * 0.3 + 0.1;
+        this.angle = Math.random() * Math.PI * 2;
+        this.angularSpeed = (Math.random() - 0.5) * 0.02;
+      }
+      update() {
+        this.y -= this.speed;
+        this.angle += this.angularSpeed;
+        if (this.y < -50) {
+          this.y = canvas.height + 50;
+          this.x = Math.random() * canvas.width;
+        }
+      }
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+        ctx.globalAlpha = this.opacity;
+        ctx.font = `${this.size}px sans-serif`;
+        ctx.fillText(this.emoji, -this.size/2, this.size/2);
+        ctx.restore();
+      }
+    }
+
+    for (let i = 0; i < 20; i++) {
+      fruits.push(new FloatingFruit());
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      fruits.forEach(f => {
+        f.update();
+        f.draw();
+      });
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>

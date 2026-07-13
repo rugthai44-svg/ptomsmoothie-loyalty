@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>แดชบอร์ดผู้ควบคุม - ร้านน้ำปั่นพี่ต้อม</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <div class="admin-layout">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="#00f0ff">
+          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+        </svg>
+        <span class="neon-text-cyan">ADMIN PORTAL</span>
+      </div>
+      <nav class="admin-nav">
+        <ul>
+          <li class="admin-nav-item active"><a href="admin-dashboard.html">📈 ภาพรวมระบบ (Overview)</a></li>
+          <li class="admin-nav-item"><a href="admin-orders.html">📦 ออเดอร์การสั่งจอง (Bookings)</a></li>
+          <li class="admin-nav-item"><a href="admin-members.html">👥 จัดการสมาชิก (Members)</a></li>
+          <li class="admin-nav-item"><a href="admin-scans.html">📷 ประวัติสะสมแต้ม (Scans)</a></li>
+          <li class="admin-nav-item"><a href="admin-settings.html">⚙️ ตั้งค่าระบบ (Settings)</a></li>
+        </ul>
+      </nav>
+      <div style="padding: 24px;">
+        <button class="btn btn-secondary" onclick="logoutAdmin()" style="width: 100%; border-color: var(--accent-red); color: var(--accent-red);">
+          🚪 ออกจากระบบ
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="admin-content">
+      
+      <!-- Content Header -->
+      <header class="admin-header">
+        <div>
+          <h1 style="font-size: 1.8rem; font-weight: 800;">📈 ภาพรวมระบบสถิติร้าน</h1>
+          <p style="color: var(--text-sub); font-size: 0.9rem;">ติดตามความเคลื่อนไหว กิจกรรมลูกค้า และสถิติการสะสมคะแนนแบบเรียลไทม์</p>
+        </div>
+        <div style="text-align: right;">
+          <strong style="color: #fff;" id="adminNameText">พี่ต้อม เจ้าของร้าน</strong><br>
+          <span style="font-size: 0.8rem; color: var(--accent-cyan);">ผู้ดูแลระบบหลัก</span>
+        </div>
+      </header>
+
+      <!-- Stat Cards Grid -->
+      <section class="admin-card-stats" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+        <div class="glass-card stat-card">
+          <p class="stat-title">สมาชิกทั้งหมด</p>
+          <p class="stat-value text-glow-cyan" id="statsMembersCount">0</p>
+          <p style="font-size: 0.75rem; color: var(--text-sub); margin-top: 4px;">บัญชีในระบบ</p>
+        </div>
+        <div class="glass-card stat-card">
+          <p class="stat-title">ยอดสั่งจองสะสม</p>
+          <p class="stat-value text-glow-green" id="statsSalesRevenue" style="color: var(--accent-green);">0.00 ฿</p>
+          <p style="font-size: 0.75rem; color: var(--text-sub); margin-top: 4px;">มูลค่าการสั่งจองสินค้า</p>
+        </div>
+        <div class="glass-card stat-card">
+          <p class="stat-title">จำนวนสะสมแต้มรวม</p>
+          <p class="stat-value text-glow-cyan" id="statsScansCount" style="color: var(--accent-cyan);">0</p>
+          <p style="font-size: 0.75rem; color: var(--text-sub); margin-top: 4px;">จำนวนครั้งที่ลูกค้าได้รับแต้ม</p>
+        </div>
+        <div class="glass-card stat-card">
+          <p class="stat-title">แลกน้ำปั่นฟรีรวม</p>
+          <p class="stat-value text-glow-green" id="statsRedeemsCount" style="color: #f953c6;">0</p>
+          <p style="font-size: 0.75rem; color: var(--text-sub); margin-top: 4px;">เครื่องดื่มแก้วแถมฟรี</p>
+        </div>
+      </section>
+
+      <!-- Detailed Analytics and Activity Logs -->
+      <div style="display: grid; grid-template-columns: 1fr; gap: 24px; margin-bottom: 24px;">
+        <!-- Left: Activity Logs (Audit Trail) -->
+        <div class="glass-card" style="display: flex; flex-direction: column;">
+          <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <span>🕵️ ความเคลื่อนไหวกิจกรรมเรียลไทม์ (Real-time Client Activity Logs)</span>
+            <span id="activeLogsCount" style="font-size: 0.85rem; color: var(--accent-cyan); font-weight: 500;">0 กิจกรรม</span>
+          </h3>
+
+          <div style="max-height: 320px; overflow-y: auto;" id="logsScrollContainer">
+            <div class="custom-table-wrapper">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>วันเวลา</th>
+                    <th>ผู้ใช้งาน</th>
+                    <th>การกระทำ</th>
+                    <th>รายละเอียดรายละเอียด</th>
+                  </tr>
+                </thead>
+                <tbody id="adminLogsTableBody">
+                  <!-- Generated dynamically -->
+                </tbody>
+              </table>
+            </div>
+            <div id="noLogsMsg" style="text-align: center; color: var(--text-sub); padding: 30px 0; display: none;">ยังไม่มีบันทึกกิจกรรมความเคลื่อนไหวใดๆ</div>
+          </div>
+        </div>
+
+        <!-- Right: Member Points Chart -->
+        <div class="glass-card" style="min-height: 350px; display: flex; flex-direction: column;">
+          <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 16px;">📊 อันดับแต้มสะสมสมาชิกสูงสุด</h3>
+          <div style="position: relative; flex-grow: 1; height: 260px; width: 100%;">
+            <canvas id="adminLeaderboardChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <script src="db.js"></script>
+  <script>
+    // Security Session verification
+    if (!DB.isAdminLoggedIn()) {
+      window.location.href = 'admin-login.html';
+    }
+
+    function logoutAdmin() {
+      DB.adminLogout();
+      window.location.href = 'admin-login.html';
+    }
+
+    // Chart global instance
+    let leaderboardChart = null;
+
+    // Refresh Dashboard UI components
+    function renderDashboard() {
+      const users = DB.getUsers();
+      const scans = DB.getScans();
+      const redeems = DB.getRedemptions();
+      const logs = DB.getActivityLogs();
+      const orders = DB.getOrders();
+
+      // Calculate total simulated revenue
+      let totalRevenue = 0;
+      orders.forEach(o => {
+        if (o.status !== 'Rejected') {
+          totalRevenue += o.costPaid;
+        }
+      });
+
+      // Update stat cards
+      document.getElementById('statsMembersCount').textContent = users.length;
+      document.getElementById('statsSalesRevenue').textContent = `${totalRevenue.toFixed(2)} ฿`;
+      document.getElementById('statsScansCount').textContent = scans.length;
+      document.getElementById('statsRedeemsCount').textContent = redeems.length;
+      
+      // Update active log counts
+      document.getElementById('activeLogsCount').textContent = `${logs.length} กิจกรรม`;
+
+      // Render activity table
+      const logsBody = document.getElementById('adminLogsTableBody');
+      const noLogsMsg = document.getElementById('noLogsMsg');
+      logsBody.innerHTML = '';
+
+      if (logs.length === 0) {
+        noLogsMsg.style.display = 'block';
+      } else {
+        noLogsMsg.style.display = 'none';
+        
+        logs.forEach(log => {
+          const dateObj = new Date(log.timestamp);
+          const dateStr = dateObj.toLocaleDateString('th-TH') + ' ' + dateObj.toLocaleTimeString('th-TH');
+
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td style="font-size: 0.8rem; color: var(--text-sub); width: 150px;">${dateStr}</td>
+            <td><strong style="color: #fff;">@${log.username}</strong></td>
+            <td><span class="neon-text-cyan" style="font-weight: 600; font-size: 0.85rem;">${log.action}</span></td>
+            <td style="font-size: 0.85rem; color: var(--text-sub);">${log.details}</td>
+          `;
+          logsBody.appendChild(row);
+        });
+      }
+
+      // Render Chart
+      renderLeaderboard(users);
+    }
+
+    function renderLeaderboard(users) {
+      // Sort users by points desc
+      const sortedUsers = [...users].sort((a, b) => b.points - a.points).slice(0, 7);
+      
+      const labels = sortedUsers.map(u => u.fullName + ` (@${u.username})`);
+      const points = sortedUsers.map(u => u.points);
+
+      const canvasCtx = document.getElementById('adminLeaderboardChart').getContext('2d');
+
+      if (leaderboardChart) {
+        leaderboardChart.destroy();
+      }
+
+      leaderboardChart = new Chart(canvasCtx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'แต้มสะสมรวม',
+            data: points,
+            backgroundColor: 'rgba(0, 240, 255, 0.25)',
+            borderColor: '#00f0ff',
+            borderWidth: 2,
+            borderRadius: 6,
+            hoverBackgroundColor: 'rgba(0, 240, 255, 0.45)',
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y', // horizontal bar chart
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#8fa0ba', font: { family: 'Outfit' } }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { color: '#8fa0ba', font: { family: 'Outfit' } }
+            }
+          }
+        }
+      });
+    }
+
+    // Initial load
+    renderDashboard();
+
+    // Listen to changes in LocalStorage (Updates dashboard instantly in multi-tab mode!)
+    window.addEventListener('storage', () => {
+      renderDashboard();
+    });
+  </script>
+</body>
+</html>

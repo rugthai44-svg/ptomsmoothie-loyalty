@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สมัครสมาชิก - ร้านน้ำปั่นพี่ต้อม</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Floating Fruit Animation Background -->
+  <canvas id="fruitCanvas" class="canvas-bg"></canvas>
+
+  <div class="auth-container">
+    <div class="glass-card auth-card" style="margin: 20px 0;">
+      <h2 class="auth-title">สมัครสมาชิกใหม่</h2>
+      <p class="auth-subtitle neon-text-cyan">สมัครเพื่อรับสิทธิ์สะสมแต้ม 10 แก้ว แลกฟรี 1 แก้ว!</p>
+
+      <div id="errorBox" style="color: var(--accent-red); background: rgba(255, 56, 96, 0.1); border: 1px solid var(--accent-red); padding: 10px; border-radius: 8px; margin-bottom: 16px; display: none; font-size: 0.9rem; text-align: center;"></div>
+      <div id="successBox" style="color: var(--accent-green); background: rgba(57, 255, 20, 0.1); border: 1px solid var(--accent-green); padding: 10px; border-radius: 8px; margin-bottom: 16px; display: none; font-size: 0.9rem; text-align: center;"></div>
+
+      <form id="registerForm">
+        <div class="form-group">
+          <label class="form-label" for="fullNameInput">ชื่อ-นามสกุล</label>
+          <input class="form-input" type="text" id="fullNameInput" placeholder="สมชาย ใจดี" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="usernameInput">ชื่อผู้ใช้งาน (Username)</label>
+          <input class="form-input" type="text" id="usernameInput" placeholder="english_letters_only" pattern="^[a-zA-Z0-9_]{4,15}$" title="กรุณาใช้ภาษาอังกฤษหรือตัวเลขความยาว 4-15 ตัวอักษร" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="emailInput">อีเมล</label>
+          <input class="form-input" type="email" id="emailInput" placeholder="example@gmail.com" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="passwordInput">รหัสผ่าน</label>
+          <div class="password-wrapper">
+            <input class="form-input" type="password" id="passwordInput" placeholder="อย่างน้อย 6 อักขระ" required>
+            <button type="button" class="password-toggle" id="togglePassword">👁️</button>
+          </div>
+          <!-- Strength Meter -->
+          <div class="strength-meter">
+            <div id="strengthBar" class="strength-bar"></div>
+          </div>
+          <span id="strengthText" style="font-size: 0.8rem; color: var(--text-sub); display: block; margin-top: 4px;">ความแรงรหัสผ่าน: ยังไม่มี</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="confirmPasswordInput">ยืนยันรหัสผ่าน</label>
+          <input class="form-input" type="password" id="confirmPasswordInput" placeholder="ยืนยันรหัสผ่านอีกครั้ง" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px; font-size: 1.05rem;">สร้างบัญชีผู้ใช้</button>
+      </form>
+
+      <div style="margin-top: 20px; text-align: center; font-size: 0.9rem;">
+        <p style="color: var(--text-sub);">มีบัญชีสมาชิกอยู่แล้ว? <a href="login.html" style="color: var(--accent-cyan); text-decoration: none; font-weight: 600;">เข้าสู่ระบบ</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="db.js"></script>
+  <script>
+    // Redirect if already logged in
+    if (DB.getCurrentUser()) {
+      window.location.href = 'home.html';
+    }
+
+    // Toggle Password
+    const togglePasswordBtn = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('passwordInput');
+    togglePasswordBtn.addEventListener('click', () => {
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        togglePasswordBtn.textContent = '🙈';
+      } else {
+        passwordInput.type = 'password';
+        togglePasswordBtn.textContent = '👁️';
+      }
+    });
+
+    // Password Strength Meter Logic
+    const strengthBar = document.getElementById('strengthBar');
+    const strengthText = document.getElementById('strengthText');
+
+    passwordInput.addEventListener('input', () => {
+      const val = passwordInput.value;
+      strengthBar.className = 'strength-bar';
+
+      if (!val) {
+        strengthBar.style.width = '0%';
+        strengthText.textContent = 'ความแรงรหัสผ่าน: ยังไม่มี';
+        return;
+      }
+
+      let score = 0;
+      if (val.length >= 6) score++;
+      if (/[a-zA-Z]/.test(val) && /[0-9]/.test(val)) score++;
+      if (/[^a-zA-Z0-9]/.test(val)) score++;
+
+      if (score === 1 || val.length < 6) {
+        strengthBar.classList.add('weak');
+        strengthText.textContent = 'ความแรงรหัสผ่าน: อ่อนแอ (กรุณาใช้ตัวเลขร่วมกับตัวอักษร)';
+        strengthText.style.color = 'var(--accent-red)';
+      } else if (score === 2) {
+        strengthBar.classList.add('medium');
+        strengthText.textContent = 'ความแรงรหัสผ่าน: ปานกลาง';
+        strengthText.style.color = '#e0a82e';
+      } else if (score === 3) {
+        strengthBar.classList.add('strong');
+        strengthText.textContent = 'ความแรงรหัสผ่าน: แข็งแกร่งยอดเยี่ยม!';
+        strengthText.style.color = 'var(--accent-green)';
+      }
+    });
+
+    // Register Handler
+    const registerForm = document.getElementById('registerForm');
+    const errorBox = document.getElementById('errorBox');
+    const successBox = document.getElementById('successBox');
+
+    registerForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      errorBox.style.display = 'none';
+      successBox.style.display = 'none';
+
+      const fullName = document.getElementById('fullNameInput').value;
+      const username = document.getElementById('usernameInput').value;
+      const email = document.getElementById('emailInput').value;
+      const pass = passwordInput.value;
+      const confirmPass = document.getElementById('confirmPasswordInput').value;
+
+      if (pass !== confirmPass) {
+        errorBox.textContent = 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน';
+        errorBox.style.display = 'block';
+        return;
+      }
+
+      try {
+        DB.signUp(fullName, username, email, pass);
+        successBox.textContent = 'สมัครสมาชิกเสร็จสมบูรณ์! กำลังนำคุณไปหน้าเข้าสู่ระบบ...';
+        successBox.style.display = 'block';
+        registerForm.reset();
+        strengthBar.className = 'strength-bar';
+        strengthText.textContent = 'ความแรงรหัสผ่าน: ยังไม่มี';
+        
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 2000);
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.style.display = 'block';
+      }
+    });
+
+    // Canvas animation code
+    const canvas = document.getElementById('fruitCanvas');
+    const ctx = canvas.getContext('2d');
+    let fruits = [];
+    const emojiList = ['🍓', '🥑', '🥭', '🥥', '🍉', '🍍', '🍊', '🍌'];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class FloatingFruit {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = canvas.height + Math.random() * 100;
+        this.size = Math.random() * 20 + 20;
+        this.speed = Math.random() * 1.5 + 0.5;
+        this.emoji = emojiList[Math.floor(Math.random() * emojiList.length)];
+        this.opacity = Math.random() * 0.5 + 0.15;
+        this.angle = Math.random() * Math.PI * 2;
+        this.angularSpeed = (Math.random() - 0.5) * 0.02;
+      }
+      update() {
+        this.y -= this.speed;
+        this.angle += this.angularSpeed;
+        if (this.y < -50) {
+          this.y = canvas.height + 50;
+          this.x = Math.random() * canvas.width;
+        }
+      }
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+        ctx.globalAlpha = this.opacity;
+        ctx.font = `${this.size}px sans-serif`;
+        ctx.fillText(this.emoji, -this.size/2, this.size/2);
+        ctx.restore();
+      }
+    }
+
+    for (let i = 0; i < 25; i++) {
+      fruits.push(new FloatingFruit());
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      fruits.forEach(f => {
+        f.update();
+        f.draw();
+      });
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>

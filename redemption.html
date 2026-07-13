@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ยืนยันการรับรางวัล - ร้านน้ำปั่นพี่ต้อม</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .redeem-verify-container {
+      max-width: 500px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    /* Coupon receipt details style */
+    .receipt-coupon-card {
+      background: linear-gradient(135deg, rgba(16, 24, 40, 0.95) 0%, rgba(6, 11, 19, 0.98) 100%);
+      border: 2px dashed var(--accent-green);
+      box-shadow: 0 0 25px rgba(57, 255, 20, 0.2);
+      border-radius: 16px;
+      padding: 30px;
+      margin-top: 20px;
+      animation: expandReceipt 0.5s ease-out;
+      text-align: center;
+    }
+    @keyframes expandReceipt {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .coupon-code {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--accent-green);
+      letter-spacing: 3px;
+      font-family: monospace;
+      padding: 12px;
+      background: var(--bg-secondary);
+      border: 1px solid rgba(57, 255, 20, 0.3);
+      border-radius: 8px;
+      margin: 16px 0;
+      text-shadow: 0 0 10px rgba(57, 255, 20, 0.4);
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="home.html" class="nav-logo">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 2c1.2 0 2.3.4 3.2 1.2l-1.4 1.4C13.2 4.2 12.6 4 12 4c-3.9 0-7 3.1-7 7 0 2.5 1.3 4.7 3.2 6H5.4c-1.9-1.3-3.2-3.5-3.2-6 0-5 4-9 9-9zm0 18c-3.9 0-7-3.1-7-7H3c0 5 4 9 9 9s9-4 9-9h-2c0 3.9-3.1 7-7 7zm5.2-13.8l-1.4 1.4c.8.9 1.2 2 1.2 3.2v5.4c0 1.9-1.3 3.5-3.2 4.8v2.1c3.1-1.3 5.2-4.1 5.2-7.5V11.4c0-1.8-.7-3.5-1.8-4.8zM12 7c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4z"/>
+      </svg>
+      <span>P'TOM SMOOTHIE</span>
+    </a>
+    
+    <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+
+    <ul class="nav-links" id="navLinks">
+      <li><a href="home.html" class="nav-link">หน้าแรก</a></li>
+      <li><a href="menu.html" class="nav-link">เมนูน้ำปั่น</a></li>
+      <li><a href="loyalty.html" class="nav-link">สะสมแต้ม</a></li>
+      <li><a href="rewards.html" class="nav-link active">รางวัลของฉัน</a></li>
+      <li><a href="profile.html" class="nav-link">โปรไฟล์</a></li>
+    </ul>
+
+    <div class="nav-user-info">
+      <div class="user-badge">
+        <span id="navRankEmoji">🥉</span>
+        <span id="navUserPoints" class="user-pts">0 แต้ม</span>
+      </div>
+      <button class="btn btn-secondary" onclick="logoutUser()" style="padding: 6px 12px; font-size: 0.85rem;">ออกจากระบบ</button>
+    </div>
+  </nav>
+
+  <!-- Main Layout -->
+  <main style="max-width: 1200px; margin: 0 auto; padding: 40px 24px;">
+    
+    <div class="redeem-verify-container">
+      
+      <!-- Stage 1: Webcam capture and photo upload -->
+      <div class="glass-card" id="scanStage" style="margin-bottom: 24px;">
+        <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 8px;">🥤 ยืนยันสิทธิ์ถ่ายรูปแก้วน้ำแลกเครื่องดื่ม</h2>
+        <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 20px;">ถ่ายรูปภาพแก้วน้ำปั่นที่ได้รับสิทธิ์ฟรี หรืออัปโหลดรูปภาพเพื่อเป็นหลักฐานในการหักลบ 100 แต้มและรับสิทธิ์</p>
+
+        <!-- Webcam Stream Viewport -->
+        <div id="webcamControlArea" style="margin-bottom: 20px;">
+          <div class="scanner-container">
+            <video id="webcamVideo" autoplay playsinline class="scanner-video"></video>
+            <div class="scanner-overlay">
+              <div class="scanner-laser"></div>
+              <div class="scanner-reticle"></div>
+            </div>
+          </div>
+          <div style="text-align: center; margin-bottom: 16px;">
+            <button id="snapBtn" class="btn btn-primary" style="padding: 10px 24px; font-size: 0.95rem;">
+              📸 ถ่ายรูปแก้วน้ำสิทธิ์ฟรี
+            </button>
+          </div>
+        </div>
+
+        <!-- Captured Preview & Fallback Upload Area -->
+        <div class="glass-card" style="padding: 24px; text-align: left; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 20px;">
+          <!-- Photo Captured Preview -->
+          <div id="capturePreviewContainer" style="text-align: center; display: none; margin-bottom: 20px;">
+            <span class="form-label" style="font-weight: 700; display: inline-block; margin-bottom: 10px; color: var(--accent-green);">📸 รูปภาพแก้วน้ำที่บันทึกแล้ว:</span>
+            <br>
+            <div style="position: relative; display: inline-block; width: 100%; max-width: 320px;">
+              <img id="capturePreviewImage" src="" style="width: 100%; max-height: 240px; object-fit: contain; border: 2px solid var(--accent-green); border-radius: 8px; box-shadow: 0 0 15px rgba(57,255,20,0.25);">
+            </div>
+            <div style="margin-top: 10px;">
+              <button id="retakeBtn" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">🔄 เปิดกล้องเพื่อถ่ายใหม่</button>
+            </div>
+          </div>
+
+          <!-- File Input Fallback -->
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" style="font-weight: 700;">📤 หรือเลือกรูปภาพแก้วน้ำจากเครื่องของคุณ (ตัวเลือกสำรอง):</label>
+            <input type="file" id="cupFileInput" accept="image/*" class="form-input" style="padding: 10px; cursor: pointer;">
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 12px;">
+          <button id="confirmRedeemBtn" class="btn btn-success" style="font-size: 1.05rem; padding: 12px 28px;" disabled>
+            ✅ ยืนยันสิทธิ์และรับน้ำปั่นฟรี
+          </button>
+        </div>
+        
+        <p style="font-size: 0.8rem; color: var(--text-sub);">
+          *การยืนยันจะทำการหักลบแต้มสะสมออก 100 แต้มและบันทึกประวัติการรับแก้วฟรี
+        </p>
+      </div>
+
+      <!-- Stage 2: Receipt coupon success view (Hidden initially) -->
+      <div id="receiptStage" style="display: none;">
+        <div class="receipt-coupon-card">
+          <span style="font-size: 4rem;">🎉</span>
+          <h2 style="font-size: 1.6rem; font-weight: 800; color: var(--accent-green); margin-top: 10px;">แลกรับน้ำปั่นฟรีสำเร็จ!</h2>
+          <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 12px;">รหัสคูปองได้รับการเปิดใช้งานแล้ว หักคะแนน 100 แต้มเรียบร้อย</p>
+
+          <span class="form-label" style="margin-top: 20px;">ยื่นรหัสนี้ให้แอดมินหรือพนักงานร้านพี่ต้อม:</span>
+          <div class="coupon-code" id="couponCodeDisplay">TOM-FREE-XXXXX</div>
+
+          <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; margin: 16px 0; text-align: left; font-size: 0.85rem;">
+            <p style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span style="color: var(--text-sub);">สมาชิกผู้รับ:</span>
+              <strong id="receiptUsernameText" style="color: #fff;">somchai</strong>
+            </p>
+            <p style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span style="color: var(--text-sub);">รายละเอียด:</span>
+              <strong style="color: #fff;">น้ำปั่นแก้วฟรี 1 แก้ว</strong>
+            </p>
+            <p style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-sub);">วันเวลาทำรายการ:</span>
+              <strong id="receiptTimeText" style="color: #fff;">23/05/2026 10:00</strong>
+            </p>
+          </div>
+
+          <a href="rewards.html" class="btn btn-primary" style="width: 100%;">เสร็จสิ้น ย้อนกลับหน้าของรางวัล</a>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Canvas capture removed -->
+
+  <script src="db.js"></script>
+  <script>
+    // Authentication guard
+    let currentUser = DB.getCurrentUser();
+    if (!currentUser) {
+      window.location.href = 'login.html';
+    }
+
+    // Verify points gate: must have at least 100 points
+    if (currentUser.points < 100) {
+      alert('แต้มของคุณไม่เพียงพอสำหรับการแลกรับรางวัล (ขั้นต่ำ 100 แต้ม)');
+      window.location.href = 'rewards.html';
+    }
+
+    // Toggle Mobile Menu
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const navLinks = document.getElementById('navLinks');
+    mobileMenuBtn.addEventListener('click', () => {
+      navLinks.classList.toggle('show');
+    });
+
+    function logoutUser() {
+      DB.logout();
+      window.location.href = 'login.html';
+    }
+
+    function updateNavbar() {
+      currentUser = DB.getCurrentUser();
+      if (!currentUser) return;
+      const pts = currentUser.points;
+      const rankInfo = DB.getRank(pts);
+      document.getElementById('navRankEmoji').textContent = rankInfo.logo;
+      document.getElementById('navUserPoints').textContent = `${pts} แต้ม`;
+    }
+    updateNavbar();
+
+    // Sound Beep synthetics
+    function playBeep() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+        osc.stop(audioCtx.currentTime + 0.25);
+      } catch(e){}
+    }
+
+    // UI Elements
+    const scanStage = document.getElementById('scanStage');
+    const receiptStage = document.getElementById('receiptStage');
+    const confirmRedeemBtn = document.getElementById('confirmRedeemBtn');
+
+    const webcamVideo = document.getElementById('webcamVideo');
+    const snapBtn = document.getElementById('snapBtn');
+    const retakeBtn = document.getElementById('retakeBtn');
+    const capturePreviewContainer = document.getElementById('capturePreviewContainer');
+    const capturePreviewImage = document.getElementById('capturePreviewImage');
+    const cupFileInput = document.getElementById('cupFileInput');
+
+    let localStream = null;
+    let capturedPhotoData = '';
+
+    // Initialize Webcam
+    async function startWebcam() {
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'environment', width: 640, height: 480 } 
+        });
+        webcamVideo.srcObject = localStream;
+      } catch (err) {
+        console.warn('Error accessing webcam, using file upload fallback:', err);
+        const webcamArea = document.getElementById('webcamControlArea');
+        if (webcamArea) {
+          webcamArea.style.display = 'none';
+        }
+      }
+    }
+
+    startWebcam();
+
+    // Capture Frame snapshot
+    snapBtn.addEventListener('click', () => {
+      if (!webcamVideo.srcObject) {
+        alert('กล้องไม่ได้เชื่อมต่ออยู่ หรือปิดใช้งานอยู่!');
+        return;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = webcamVideo.videoWidth || 640;
+      canvas.height = webcamVideo.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(webcamVideo, 0, 0, canvas.width, canvas.height);
+      
+      capturedPhotoData = canvas.toDataURL('image/png');
+      capturePreviewImage.src = capturedPhotoData;
+      capturePreviewContainer.style.display = 'block';
+      confirmRedeemBtn.disabled = false;
+      
+      // Stop webcam stream after successful photo snap
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+      }
+      
+      // Camera shutter synthetic sound effect
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.frequency.setValueAtTime(1800, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.05);
+      } catch(e){}
+    });
+
+    // Retake snapshot action
+    retakeBtn.addEventListener('click', () => {
+      capturedPhotoData = '';
+      capturePreviewImage.src = '';
+      capturePreviewContainer.style.display = 'none';
+      confirmRedeemBtn.disabled = true;
+      cupFileInput.value = '';
+      
+      // Restart webcam stream if it was stopped
+      startWebcam();
+    });
+
+    // File fallback handler
+    cupFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        // Stop webcam if it is running
+        if (localStream) {
+          localStream.getTracks().forEach(track => track.stop());
+          localStream = null;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          capturedPhotoData = evt.target.result;
+          capturePreviewImage.src = capturedPhotoData;
+          capturePreviewContainer.style.display = 'block';
+          confirmRedeemBtn.disabled = false;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        capturedPhotoData = '';
+        capturePreviewImage.src = '';
+        capturePreviewContainer.style.display = 'none';
+        confirmRedeemBtn.disabled = true;
+      }
+    });
+
+    // Confirm & redeem transaction handler
+    confirmRedeemBtn.addEventListener('click', () => {
+      confirmRedeemBtn.disabled = true;
+
+      if (!capturedPhotoData) {
+        alert('กรุณาถ่ายภาพแก้วน้ำหรืออัปโหลดรูปภาพแก้วน้ำเพื่อใช้สิทธิ์!');
+        confirmRedeemBtn.disabled = false;
+        return;
+      }
+
+      try {
+        // Turn off camera stream if it is still active
+        if (localStream) {
+          localStream.getTracks().forEach(track => track.stop());
+          localStream = null;
+        }
+
+        // Deduct 100 points in DB and log photo
+        const redeemId = DB.redeemReward(currentUser.username, capturedPhotoData);
+
+        // Play success beep
+        playBeep();
+
+        // Generate Coupon Code
+        const cleanCode = 'TOM-FREE-' + Math.floor(10000 + Math.random() * 90000);
+        document.getElementById('couponCodeDisplay').textContent = cleanCode;
+
+        // Populate receipt fields
+        document.getElementById('receiptUsernameText').textContent = currentUser.fullName + ` (${currentUser.username})`;
+        
+        const timestamp = new Date();
+        document.getElementById('receiptTimeText').textContent = timestamp.toLocaleDateString('th-TH') + ' ' + timestamp.toLocaleTimeString('th-TH');
+
+        // Swap panels
+        scanStage.style.display = 'none';
+        receiptStage.style.display = 'block';
+
+        // Update header points badge
+        updateNavbar();
+      } catch (err) {
+        alert('เกิดข้อผิดพลาดในการแลกของรางวัล: ' + err.message);
+        confirmRedeemBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
