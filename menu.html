@@ -206,7 +206,7 @@
       </div>
     </div>
 
-    <h2 style="text-align: center; margin-bottom: 8px; font-size: 1.8rem; font-weight: 800;">📋 เมนูเครื่องดื่มและของว่าง (80 รายการแนะนำ)</h2>
+    <h2 style="text-align: center; margin-bottom: 8px; font-size: 1.8rem; font-weight: 800;">📋 เมนูเครื่องดื่ม (60 รายการแนะนำ)</h2>
     <p style="text-align: center; color: var(--text-sub); margin-bottom: 40px; font-size: 0.95rem;">เลือกเมนูที่ต้องการจอง ปรับแต่งระดับความหวาน/ท็อปปิ้ง และระบุเวลารับเครื่องดื่ม</p>
 
     <!-- Filters -->
@@ -215,7 +215,6 @@
       <button class="btn btn-secondary" onclick="filterMenu('smoothie', this)">เมนูปั่น (Smoothie)</button>
       <button class="btn btn-secondary" onclick="filterMenu('cold', this)">เมนูเย็น (Cold)</button>
       <button class="btn btn-secondary" onclick="filterMenu('hot', this)">เมนูร้อน (Hot)</button>
-      <button class="btn btn-secondary" onclick="filterMenu('snacks', this)">ของว่างทานเล่น (Snacks)</button>
     </div>
 
     <!-- Menu Grid -->
@@ -473,29 +472,7 @@
       { id: 57, title: 'ชาเอิร์ลเกรย์ร้อน (Hot Earl Grey Tea)', desc: 'ชาฝรั่งเอิร์ลเกรย์ร้อนพรีเมียม ส่งกลิ่นน้ำมันมะกรูดอโรมาหอมสะอาด ชื่นใจ', price: 30, category: 'hot', tag: 'ชาพรีเมียม' },
       { id: 58, title: 'ชาอูหลงพรีเมียมร้อน (Hot Oolong Tea)', desc: 'ใบชาอูหลงเกรดคัดสรร ชงร้อนกลิ่นชาเข้มลุ่มลึก ล้างไขมัน ช่วยย่อยอาหาร', price: 35, category: 'hot', tag: 'ล้างไขมันดี' },
       { id: 59, title: 'กาแฟส้มร้อน (Hot Americano Orange)', desc: 'กาแฟอเมริกาโน่ร้อนเททับน้ำส้มสายน้ำผึ้งอุ่นบางเบา เปรี้ยวหวานขมกลมกล่อม', price: 40, category: 'hot', tag: 'แปลกใหม่' },
-      { id: 60, title: 'นมสดคาราเมลร้อน (Hot Caramel Milk)', desc: 'นมสดสตรีมร้อนหอมๆ ผสมคาราเมลอุ่น หวานฉ่ำ คลารายเครียดได้ดีในวันเหนื่อยล้า', price: 30, category: 'hot', tag: 'ผ่อนคลาย' },
-
-      // CATEGORY: SNACKS (20 items)
-      { id: 61, title: 'แซนด์วิชทูน่าโฮลวีต (Tuna Whole Wheat)', desc: 'ทูน่าคลุกสลัดไขมันต่ำ ประกบด้วยขนมปังโฮลวีตปิ้ง สะอาดมีโปรตีนสูง', price: 45, category: 'snacks', tag: 'คุมแคล' },
-      { id: 62, title: 'ครอฟเฟิลเคลือบน้ำตาลมะพร้าว (Coconut Croffle)', desc: 'ครัวซองต์อบเครื่องวาฟเฟิล เคลือบด้วยคาราเมลน้ำตาลมะพร้าวหวานหอม', price: 39, category: 'snacks', tag: 'หวานมัน' },
-      { id: 63, title: 'แซนด์วิชแฮมชีสร้อน (Ham Cheese Toastie)', desc: 'แซนด์วิชอบร้อนจากเตาประกบแฮมและมอสซาเรลล่าชีส ยืดร้อนๆ อร่อยสุดใจ', price: 40, category: 'snacks', tag: 'ชีสยืดอบร้อน' },
-      { id: 64, title: 'เฟรนช์ฟรายส์เขย่าชีส (Cheese French Fries)', desc: 'มันฝรั่งทอดกรอบสีทอง คลุกผงชีสเข้มข้น เคี้ยวเพลิน ของโปรดวัยรุ่น', price: 45, category: 'snacks', tag: 'ของว่างยอดฮิต' },
-      { id: 65, title: 'นักเก็ตไก่กรอบ (Crispy Chicken Nuggets)', desc: 'เนื้ออกไก่บดชุบเกล็ดขนมปังทอดกรอบ ไม่อมน้ำมัน จิ้มซอสมะเขือเทศอร่อยมาก', price: 49, category: 'snacks', tag: 'ทอดใหม่ร้อนๆ' },
-      { id: 66, title: 'ขนมปังปิ้งเนยนม (Butter Milk Toast)', desc: 'ขนมปังปิ้งแผ่นหนา ทาเนยสดชุ่มราดนมข้นหวานฉ่ำ กรอบนอกนุ่มในคลาสสิก', price: 25, category: 'snacks', tag: 'คลาสสิกโทสต์' },
-      { id: 67, title: 'ขนมปังปิ้งสังขยาใบเตย (Pandan Custard Toast)', desc: 'ขนมปังปิ้งหั่นเต๋าราดสังขยาใบเตยแท้ทำเอง หวานมัน กลิ่นหอมใบเตยฟุ้ง', price: 30, category: 'snacks', tag: 'ใบเตยคัสตาร์ด' },
-      { id: 68, title: 'บราวนี่ดาร์กช็อกโกแลต (Dark Chocolate Brownie)', desc: 'บราวนี่เนื้อฟัดจ์เข้มข้น ดาร์กช็อกโกแลตสะใจ หน้าฟิล์มเนื้อฉ่ำหวานกำลังดี', price: 35, category: 'snacks', tag: 'ช็อกโกแลตเข้ม' },
-      { id: 69, title: 'คุกกี้ช็อกโกแลตชิพชิ้นโต (Choco Chip Cookie)', desc: 'คุกกี้นุ่มสไตล์อเมริกัน อัดแน่นด้วยเม็ดช็อกโกแลตชิพละลายในปากชิ้นใหญ่', price: 25, category: 'snacks', tag: 'คุกกี้นุ่ม' },
-      { id: 70, title: 'เค้กกล้วยหอมเนยสด (Banana Cake)', desc: 'เค้กกล้วยหอมทองเนื้อนุ่มฟู หอมเนยสดแท้ อบสดใหม่ทุกเช้าหน้าร้านพี่ต้อม', price: 25, category: 'snacks', tag: 'อบสดทุกวัน' },
-      { id: 71, title: 'วาฟเฟิลฮ่องกงออริจินัล (Egg Waffle)', desc: 'วาฟเฟิลฮ่องกงทรงปุ่มกลมกรอบนอกนุ่มใน กลิ่นแป้งหอมวนิลา ทานร้อนๆ ฟินสุด', price: 35, category: 'snacks', tag: 'สูตรฮ่องกงแท้' },
-      { id: 72, title: 'ซาลาเปาหมูสับนึ่งร้อน (Steamed Pork Bun)', desc: 'ซาลาเปาแป้งนุ่มนิ่มไส้หมูสับผสมไข่ต้มแน่นๆ นึ่งร้อนอุ่นท้องได้ตลอดวัน', price: 20, category: 'snacks', tag: 'ติ่มซำร้อน' },
-      { id: 73, title: 'ขนมจีบหมูกุ้งพรีเมียม (Pork & Shrimp Shumai)', desc: 'ขนมจีบแป้งบางสอดไส้หมูสับและเนื้อกุ้งเด้งคำโต 5 ลูก โรยกระเทียมเจียวหอม', price: 40, category: 'snacks', tag: 'ลูกใหญ่เต็มคำ' },
-      { id: 74, title: 'ปอเปี๊ยะทอดกรอบ (Crispy Spring Rolls)', desc: 'แผ่นแป้งห่อไส้วุ้นเส้นและผักสับทอดกรอบสีเหลืองทอง จิ้มน้ำจิ้มบ๊วยเจี่ยหวาน', price: 35, category: 'snacks', tag: 'กรอบกรุบ' },
-      { id: 75, title: 'ไก่ป๊อปสไปซี่ (Spicy Popcorn Chicken)', desc: 'ไก่ชิ้นเล็กชุบแป้งทอดกรอบคลุกผงสไปซี่รสเผ็ดร้อนแซ่บถึงใจ ทานเล่นเพลิน', price: 49, category: 'snacks', tag: 'แซ่บซ่า' },
-      { id: 76, title: 'ทาร์ตไข่อบใหม่ (Fresh Egg Tart)', desc: 'แป้งพายกรอบซ้อนชั้นสอดไส้ครีมไข่นุ่มนิ่ม หอมเนยน้ำตาลไหม้แบบฉบับโปรตุเกส', price: 30, category: 'snacks', tag: 'ทาร์ตไข่หอม' },
-      { id: 77, title: 'มาการองผลไม้ (Fruit Macarons)', desc: 'มาการองฝาแป้งอัลมอนด์อบกรอบ สอดไส้ครีมรสผลไม้รสเปรี้ยวอมหวาน (2 ชิ้น)', price: 40, category: 'snacks', tag: 'หวานหรูหรา' },
-      { id: 78, title: 'แยมโรลสตรอว์เบอร์รี (Strawberry Roll Cake)', desc: 'สปันจ์เค้กม้วนสอดไส้ครีมสดสตรอว์เบอร์รี รสสัมผัสเบาบาง นุ่มฟูละมุนปาก', price: 30, category: 'snacks', tag: 'เค้กม้วน' },
-      { id: 79, title: 'ขนมปังกระเทียมอบชีส (Cheesy Garlic Bread)', desc: 'ขนมปังฝรั่งเศสทาเนยกระเทียม ท็อปมอสซาเรลล่าชีสเยิ้ม อบกรอบหอมหวน', price: 45, category: 'snacks', tag: 'หอมกระเทียมชีส' },
-      { id: 80, title: 'ชีสบอลยืดๆ (Melting Cheese Balls)', desc: 'แป้งชีสทอดกรอบสอดไส้มอสซาเรลล่าชีสเน้นๆ ยืดสะใจ 4 ลูก เสิร์ฟร้อนๆ', price: 49, category: 'snacks', tag: 'ชีสยืดเลิฟเวอร์' }
+      { id: 60, title: 'นมสดคาราเมลร้อน (Hot Caramel Milk)', desc: 'นมสดสตรีมร้อนหอมๆ ผสมคาราเมลอุ่น หวานฉ่ำ คลารายเครียดได้ดีในวันเหนื่อยล้า', price: 30, category: 'hot', tag: 'ผ่อนคลาย' }
     ];
 
     // Render Menu Cards
