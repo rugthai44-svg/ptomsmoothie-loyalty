@@ -87,6 +87,79 @@
       font-family: monospace;
       letter-spacing: 1px;
     }
+    
+    /* Menu Grid Layout */
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 30px;
+    }
+    
+    /* Menu Card Styles */
+    .menu-card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .menu-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--accent-cyan);
+      box-shadow: 0 10px 20px rgba(0, 240, 255, 0.15);
+    }
+    .menu-card-img-placeholder {
+      height: 140px;
+      background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      border-bottom: 1px solid var(--border-color);
+      margin: -24px -24px 16px -24px;
+    }
+    .menu-tag {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(0, 240, 255, 0.2);
+      border: 1px solid var(--accent-cyan);
+      color: var(--accent-cyan);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .menu-card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .menu-card-desc {
+      font-size: 0.85rem;
+      color: var(--text-sub);
+      margin-bottom: 16px;
+      flex-grow: 1;
+      line-height: 1.5;
+    }
+    .menu-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: auto;
+      border-top: 1px solid var(--border-color);
+      padding-top: 12px;
+    }
+    .menu-card-price {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--accent-green);
+    }
   </style>
 </head>
 <body>
@@ -129,7 +202,7 @@
           ⚡ โปรโมชันสะสมแต้มอัจฉริยะ ⚡
         </span>
         <h2 class="promo-title" style="margin: 10px 0;">สั่งจองเมนูล่วงหน้า รับของหน้าร้าน</h2>
-        <p style="color: var(--text-sub); margin-bottom: 0px;">จองรายการโปรดและกดยืนยันชำระเงินที่ร้านเพื่อรับแต้มสะสมทันที +10 แต้มต่อแก้ว สะดวกรวดเร็วไม่ต้องรอคิว!</p>
+        <p style="color: var(--text-sub); margin-bottom: 0px;">หากมารับน้ำช้าเกินไปจนน้ำเสียรสชาติ ทางร้านจะไม่รับผิดชอบใดๆ ทั้งสิ้น</p>
       </div>
     </div>
 
@@ -454,9 +527,11 @@
             <div>
               <span class="menu-card-price" id="price-val-${item.id}">${item.price} ฿</span>
             </div>
+            ${item.category === 'snacks' ? '' : `
             <button class="btn btn-primary" style="padding: 6px 14px; font-size: 0.85rem;" onclick="openBookingModal(${item.id})">
               🗓️ จองคิวรับที่ร้าน
             </button>
+            `}
           </div>
         `;
         grid.appendChild(card);
@@ -492,7 +567,7 @@
 
     function openBookingModal(itemId) {
       selectedItem = menuItems.find(i => i.id === itemId);
-      if (!selectedItem) return;
+      if (!selectedItem || selectedItem.category === 'snacks') return;
 
       bookModalTitle.textContent = selectedItem.title;
       bookModalDesc.textContent = selectedItem.desc;
