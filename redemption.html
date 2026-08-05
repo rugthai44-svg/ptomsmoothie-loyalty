@@ -165,7 +165,7 @@
 
   <!-- Canvas capture removed -->
 
-  <script src="db.js?v=1"></script>
+  <script src="db.js?v=3"></script>
   <script>
     // Authentication guard
     let currentUser = DB.getCurrentUser();
@@ -195,7 +195,7 @@
       currentUser = DB.getCurrentUser();
       if (!currentUser) return;
       const pts = currentUser.points;
-      const rankInfo = DB.getRank(pts);
+      const rankInfo = DB.getRank(currentUser.totalLifetimePoints || pts);
       document.getElementById('navRankEmoji').textContent = rankInfo.logo;
       document.getElementById('navUserPoints').textContent = `${pts} แต้ม`;
     }

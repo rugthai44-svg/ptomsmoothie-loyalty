@@ -63,6 +63,7 @@
           <li class="admin-nav-item"><a href="admin-orders.html">📦 ออเดอร์การสั่งจอง (Bookings)</a></li>
           <li class="admin-nav-item"><a href="admin-members.html">👥 จัดการสมาชิก (Members)</a></li>
           <li class="admin-nav-item active"><a href="admin-scans.html">📷 ประวัติสะสมแต้ม (Scans)</a></li>
+          <li class="admin-nav-item"><a href="admin-menu.html">🍹 จัดการเมนูร้าน (Products)</a></li>
           <li class="admin-nav-item"><a href="admin-settings.html">⚙️ ตั้งค่าระบบ (Settings)</a></li>
         </ul>
       </nav>
@@ -126,7 +127,32 @@
     </div>
   </div>
 
-  <script src="db.js?v=1"></script>
+  <!-- Edit Scan Points Modal -->
+  <div class="modal-photo-preview" id="editScanModal" style="background: rgba(6, 11, 19, 0.85);">
+    <div class="glass-card preview-card" style="max-width: 400px; text-align: left;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="font-size: 1.2rem; color: var(--accent-cyan);" id="editScanTitle">✏️ แก้ไขแต้มสะสมจากรายการนี้</h3>
+        <button class="btn btn-secondary" onclick="closeEditScanModal()" style="padding: 6px 12px; font-size: 0.8rem;">ปิด</button>
+      </div>
+      <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 20px;" id="editScanModalSubtitle">รหัสสะสม: SCAN-XXXXXX</p>
+
+      <form id="editScanForm">
+        <input type="hidden" id="editScanIdInput">
+        <div class="form-group">
+          <label class="form-label" for="newScanPointsInput">คะแนนสะสมที่ลูกค้าได้รับ</label>
+          <input class="form-input" type="number" id="newScanPointsInput" min="0" max="1000" required>
+          <span style="font-size: 0.75rem; color: var(--text-sub); display: block; margin-top: 4px;">*การปรับเปลี่ยนแต้มจะคำนวณแต้มสะสมปัจจุบันและแรงค์ของสมาชิกผู้ส่งสลิปนี้ใหม่อัตโนมัติ</span>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="closeEditScanModal()" style="flex: 1;">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary" style="flex: 1;">บันทึกข้อมูล</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="db.js?v=3"></script>
   <script>
     // Security check
     if (!DB.isAdminLoggedIn()) {
@@ -165,7 +191,7 @@
       tbody.innerHTML = '';
       
       if (currentTab === 'scans') {
-        // Render headers for scans (added slip verification photo)
+        // Render headers for scans (added slip verification photo and actions)
         headers.innerHTML = `
           <th>รูปภาพสลิป</th>
           <th>รหัสสะสมแต้ม</th>
@@ -173,6 +199,7 @@
           <th>แต้มที่เพิ่ม</th>
           <th>สถานะ</th>
           <th>วันเวลาทำรายการ</th>
+          <th>การจัดการ</th>
         `;
 
         const scansList = DB.getScans();
@@ -196,6 +223,12 @@
             <td><span class="neon-text-cyan" style="font-weight: 700;">+${scan.pointsGained} แต้ม</span></td>
             <td><span style="color: var(--accent-green); font-size: 0.85rem; font-weight: 700; border: 1px solid var(--accent-green); padding: 2px 6px; border-radius: 4px;">สำเร็จ</span></td>
             <td style="font-size: 0.85rem; color: var(--text-sub);">${dateStr}</td>
+            <td>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem; border-color: var(--accent-cyan); color: var(--accent-cyan);" onclick="openEditScanModal('${scan.id}')">✏️ แก้ไขแต้ม</button>
+                <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem; border-color: var(--accent-red); color: var(--accent-red);" onclick="deleteScanRecord('${scan.id}')">🗑️ ลบ</button>
+              </div>
+            </td>
           `;
           tbody.appendChild(row);
         });
@@ -253,6 +286,54 @@
 
     function closePreviewModal() {
       modal.classList.remove('show');
+    }
+
+    // Modal Edit Scan Handlers
+    const editScanModal = document.getElementById('editScanModal');
+    const editScanForm = document.getElementById('editScanForm');
+    const editScanIdInput = document.getElementById('editScanIdInput');
+    const newScanPointsInput = document.getElementById('newScanPointsInput');
+    const editScanModalSubtitle = document.getElementById('editScanModalSubtitle');
+
+    function openEditScanModal(scanId) {
+      const scans = DB.getScans();
+      const scan = scans.find(s => s.id === scanId);
+      if (!scan) return;
+
+      editScanIdInput.value = scan.id;
+      newScanPointsInput.value = scan.pointsGained;
+      editScanModalSubtitle.textContent = `รหัสสะสม: ${scan.id} (ลูกค้า: @${scan.username})`;
+      
+      editScanModal.classList.add('show');
+    }
+
+    function closeEditScanModal() {
+      editScanModal.classList.remove('show');
+    }
+
+    editScanForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = editScanIdInput.value;
+      const pts = parseInt(newScanPointsInput.value, 10);
+
+      try {
+        DB.updateScanPoints(id, pts);
+        closeEditScanModal();
+        loadData();
+      } catch (err) {
+        alert('เกิดข้อผิดพลาดในการแก้ไขแต้มรายการสะสม: ' + err.message);
+      }
+    });
+
+    function deleteScanRecord(scanId) {
+      if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบประวัติสะสมแต้มรหัส ${scanId} นี้? แต้มของผู้ใช้รายนี้จะถูกหักคืนตามจำนวนแต้มในรายการนี้!`)) {
+        try {
+          DB.deleteScan(scanId);
+          loadData();
+        } catch (err) {
+          alert('เกิดข้อผิดพลาดในการลบประวัติ: ' + err.message);
+        }
+      }
     }
 
     // Initial load

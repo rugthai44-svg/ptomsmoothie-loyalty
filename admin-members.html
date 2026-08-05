@@ -57,6 +57,7 @@
           <li class="admin-nav-item"><a href="admin-orders.html">📦 ออเดอร์การสั่งจอง (Bookings)</a></li>
           <li class="admin-nav-item active"><a href="admin-members.html">👥 จัดการสมาชิก (Members)</a></li>
           <li class="admin-nav-item"><a href="admin-scans.html">📷 ประวัติสะสมแต้ม (Scans)</a></li>
+          <li class="admin-nav-item"><a href="admin-menu.html">🍹 จัดการเมนูร้าน (Products)</a></li>
           <li class="admin-nav-item"><a href="admin-settings.html">⚙️ ตั้งค่าระบบ (Settings)</a></li>
         </ul>
       </nav>
@@ -70,11 +71,14 @@
     <!-- Main Content -->
     <main class="admin-content">
       
-      <header class="admin-header">
+      <header class="admin-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
         <div>
           <h1 style="font-size: 1.8rem; font-weight: 800;">👥 จัดการสมาชิกทั้งหมด</h1>
           <p style="color: var(--text-sub); font-size: 0.9rem;">ตรวจสอบข้อมูลสมาชิก แก้ไขแต้มสะสมด้วยตนเอง หรือ ลบบัญชีผู้ใช้งานในระบบ</p>
         </div>
+        <button class="btn btn-primary" onclick="openAddMemberModal()" style="display: flex; align-items: center; gap: 8px;">
+          ➕ เพิ่มสมาชิกใหม่
+        </button>
       </header>
 
       <!-- Member Actions / Search -->
@@ -136,7 +140,54 @@
     </div>
   </div>
 
-  <script src="db.js?v=1"></script>
+  <!-- Add Member Modal -->
+  <div class="edit-modal" id="addMemberModal">
+    <div class="glass-card edit-modal-card">
+      <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 20px; color: var(--accent-cyan);">👥 เพิ่มสมาชิกใหม่</h3>
+      
+      <div id="addMemberError" style="color: var(--accent-red); background: rgba(255, 56, 96, 0.1); border: 1px solid var(--accent-red); padding: 10px; border-radius: 8px; margin-bottom: 16px; display: none; font-size: 0.9rem; text-align: center;"></div>
+      
+      <form id="addMemberForm">
+        <div class="form-group">
+          <label class="form-label" for="addFullNameInput">ชื่อ-นามสกุล</label>
+          <input class="form-input" type="text" id="addFullNameInput" placeholder="เช่น สมชาย ใจดี" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="addUsernameInput">ชื่อผู้ใช้ (Username)</label>
+          <input class="form-input" type="text" id="addUsernameInput" placeholder="เช่น somchai123" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="addEmailInput">อีเมล</label>
+          <input class="form-input" type="email" id="addEmailInput" placeholder="เช่น somchai@gmail.com" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="addPasswordInput">รหัสผ่านสำหรับเข้าสู่ระบบ</label>
+          <input class="form-input" type="password" id="addPasswordInput" placeholder="อย่างน้อย 6 ตัวอักษร" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label class="form-label" for="addPhoneInput">เบอร์โทรศัพท์</label>
+            <input class="form-input" type="text" id="addPhoneInput" placeholder="เช่น 0891234567">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="addBirthDateInput">วันเกิด</label>
+            <input class="form-input" type="date" id="addBirthDateInput" style="background: var(--dark-bg); color: #fff;">
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="closeAddMemberModal()" style="flex: 1;">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary" style="flex: 1;">💾 สร้างบัญชี</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="db.js?v=3"></script>
   <script>
     // Security Session verification
     if (!DB.isAdminLoggedIn()) {
@@ -170,7 +221,7 @@
       noFoundMsg.style.display = 'none';
 
       usersList.forEach(user => {
-        const rankInfo = DB.getRank(user.points);
+        const rankInfo = DB.getRank(user.totalLifetimePoints || user.points);
         const joinDate = new Date(user.createdAt).toLocaleDateString('th-TH');
 
         const row = document.createElement('tr');
@@ -215,15 +266,13 @@
 
     // Delete User
     function deleteUserAccount(username) {
-      if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบบัญชีผู้ใช้ @${username} ออกจากระบบ? การลบนี้จะเป็นการทำลายแต้มสะสมทั้งหมดของลูกค้ารายนี้!`)) {
-        let users = DB.getUsers();
-        users = users.filter(u => u.username !== username);
-        DB.saveUsers(users);
-        
-        // Log Admin activity
-        DB.logActivity('admin', 'ลบผู้ใช้', `แอดมินลบบัญชีสมาชิก @${username} สำเร็จ`);
-        
-        loadMembers();
+      if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบบัญชีผู้ใช้ @${username} ออกจากระบบ? การลบนี้จะเป็นการทำลายแต้มสะสมและสิทธิประโยชน์ของลูกค้ารายนี้ทั้งหมดบนระบบ Supabase!`)) {
+        try {
+          DB.deleteUser(username);
+          loadMembers();
+        } catch (err) {
+          alert('เกิดข้อผิดพลาดในการลบสมาชิก: ' + err.message);
+        }
       }
     }
 
@@ -261,18 +310,50 @@
         return;
       }
 
-      // Save points
-      const users = DB.getUsers();
-      const userIdx = users.findIndex(u => u.username === editingUser.username);
-      if (userIdx !== -1) {
-        users[userIdx].points = newPts;
-        DB.saveUsers(users);
-
-        // Log Admin activity
-        DB.logActivity('admin', 'ปรับแต่งคะแนนด้วยตนเอง', `แอดมินแก้ไขแต้มของ @${editingUser.username} จากเดิม ${oldPts} เป็น ${newPts} แต้ม`);
-        
+      try {
+        DB.updateUserPoints(editingUser.username, newPts);
         closeEditModal();
         loadMembers();
+      } catch (err) {
+        alert('เกิดข้อผิดพลาดในการอัปเดตแต้ม: ' + err.message);
+      }
+    });
+
+    // Add Member Modal handlers
+    const addMemberModal = document.getElementById('addMemberModal');
+    const addMemberForm = document.getElementById('addMemberForm');
+    const addMemberError = document.getElementById('addMemberError');
+
+    function openAddMemberModal() {
+      addMemberForm.reset();
+      addMemberError.style.display = 'none';
+      addMemberModal.classList.add('show');
+    }
+
+    function closeAddMemberModal() {
+      addMemberModal.classList.remove('show');
+    }
+
+    addMemberForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      addMemberError.style.display = 'none';
+
+      const fullName = document.getElementById('addFullNameInput').value;
+      const username = document.getElementById('addUsernameInput').value;
+      const email = document.getElementById('addEmailInput').value;
+      const password = document.getElementById('addPasswordInput').value;
+      const phone = document.getElementById('addPhoneInput').value;
+      const birthDate = document.getElementById('addBirthDateInput').value;
+
+      try {
+        if (password.length < 6) throw new Error('รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร');
+
+        DB.addCustomer(fullName, username, email, password, phone, birthDate);
+        closeAddMemberModal();
+        loadMembers();
+      } catch (err) {
+        addMemberError.textContent = err.message;
+        addMemberError.style.display = 'block';
       }
     });
 

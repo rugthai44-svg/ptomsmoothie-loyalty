@@ -102,7 +102,7 @@
 
   </main>
 
-  <script src="db.js?v=1"></script>
+  <script src="db.js?v=3"></script>
   <script>
     // 1. Session check & navbar variables loading
     let currentUser = DB.getCurrentUser();
@@ -128,7 +128,7 @@
       if (!currentUser) return;
 
       const pts = currentUser.points;
-      const rankInfo = DB.getRank(pts);
+      const rankInfo = DB.getRank(currentUser.totalLifetimePoints || pts);
 
       // Nav elements
       document.getElementById('navRankEmoji').textContent = rankInfo.logo;

@@ -349,7 +349,7 @@
     </div>
   </div>
 
-  <script src="db.js?v=1"></script>
+  <script src="db.js?v=3"></script>
   <script>
     // Authentication guard
     let currentUser = DB.getCurrentUser();
@@ -374,80 +374,48 @@
       currentUser = DB.getCurrentUser();
       if (!currentUser) return;
       const pts = currentUser.points;
-      const rankInfo = DB.getRank(pts);
+      const rankInfo = DB.getRank(currentUser.totalLifetimePoints || pts);
       document.getElementById('navRankEmoji').textContent = rankInfo.logo;
       document.getElementById('navUserPoints').textContent = `${pts} แต้ม`;
     }
     updateNavbar();
 
-    // Menu Data (80 items: 20 smoothies, 20 cold, 20 hot, 20 snacks)
-    const menuItems = [
-      // CATEGORY: SMOOTHIE (20 items)
-      { id: 1, title: 'อะโวคาโดน้ำผึ้งปั่น (Organic Avocado Honey)', desc: 'อะโวคาโดสดออร์แกนิก ปั่นคู่กับน้ำผึ้งธรรมชาติ หอมมัน มีประโยชน์ต่อสุขภาพ', price: 49, category: 'smoothie', tag: 'เมนูยอดฮิต' },
-      { id: 2, title: 'มะม่วงอกร่องทองปั่น (Golden Mango Smoothie)', desc: 'มะม่วงอกร่องสุกหวานอมเปรี้ยวตามธรรมชาติ ปั่นจนเนื้อเนียนละเอียด ดับร้อนสดชื่น', price: 40, category: 'smoothie', tag: 'ผลไม้ฤดูกาล' },
-      { id: 3, title: 'สตรอว์เบอร์รีโยเกิร์ตปั่น (Strawberry Yogurt)', desc: 'สตรอว์เบอร์รีสดแช่แข็งปั่นรวมกับโยเกิร์ตแท้เนื้อละมุน ได้รสเปรี้ยวหวานกลมกล่อม', price: 45, category: 'smoothie', tag: 'สายคลีน' },
-      { id: 4, title: 'มะพร้าวน้ำหอมปั่นนมสด (Coconut Milk)', desc: 'มะพร้าวน้ำหอมแท้ๆ ปั่นผสมกับนมสดสูตรลับเฉพาะของพี่ต้อม หอมมันหวานกำลังดี', price: 40, category: 'smoothie', tag: 'แนะนำพิเศษ' },
-      { id: 5, title: 'เสาวรสพีชปั่น (Passion Fruit Peach)', desc: 'เสาวรสสดปั่นคู่กับเนื้อพีชหวานฉ่ำ เปรี้ยวอมหวานสดชื่นตื่นเต็มตา', price: 45, category: 'smoothie', tag: 'เปรี้ยวจี๊ด' },
-      { id: 6, title: 'บลูเบอร์รีป่าโยเกิร์ตปั่น (Wild Blueberry Yogurt)', desc: 'บลูเบอร์รี่เกรดนำเข้า ปั่นรวมกับโยเกิร์ต แหล่งสารต้านอนุมูลอิสระชั้นเยี่ยม', price: 49, category: 'smoothie', tag: 'เพื่อสุขภาพ' },
-      { id: 7, title: 'กล้วยหอมช็อกโกแลตปั่น (Choco-Banana)', desc: 'กล้วยหอมทองสุกลูกใหญ่ปั่นกับโกโก้พรีเมียมเข้มข้น พลังงานเต็มเปี่ยม', price: 40, category: 'smoothie', tag: 'ให้พลังงาน' },
-      { id: 8, title: 'กีวี่สีทองดีท็อกซ์ปั่น (Golden Kiwi Detox)', desc: 'กีวี่สีทองเนื้อนุ่มอัดแน่นด้วยวิตามินซี ปั่นพร้อมดื่มเพื่อช่วยดีท็อกซ์ระบบขับถ่าย', price: 49, category: 'smoothie', tag: 'วิตามินซีสูง' },
-      { id: 9, title: 'ส้มสายน้ำผึ้งเชอร์เบทปั่น (Orange Sherbet)', desc: 'เนื้อส้มสายน้ำผึ้งคั้นสด ปั่นแบบเกล็ดน้ำแข็งเชอร์เบท ละมุนลิ้นรสเปรี้ยวหวานลงตัว', price: 35, category: 'smoothie', tag: 'สดชื่น' },
-      { id: 10, title: 'แตงโมดับร้อนปั่น (Watermelon Freeze)', desc: 'เนื้อแตงโมหวานฉ่ำ ปั่นกรองใยแก้ว เย็นชื่นใจ ดับร้อนแดดเมืองไทยได้ยอดเยี่ยม', price: 30, category: 'smoothie', tag: 'ดับร้อน' },
-      { id: 11, title: 'สับปะรดภูแลปั่น (Phulae Pineapple)', desc: 'สับปะรดภูแลรสชาติหวานกรอบอมเปรี้ยวนิดๆ ปั่นเย็นฉ่ำ สดชื่นกระปรี้กระเปร่า', price: 30, category: 'smoothie', tag: 'เปรี้ยวหวาน' },
-      { id: 12, title: 'มิกซ์เบอร์รีรวมปั่น (Mixed Berries)', desc: 'การผสมผสานของผลไม้ตระกูลเบอร์รี่ 4 ชนิด ปั่นเปรี้ยวหวานอร่อยกลมกล่อมลงตัว', price: 45, category: 'smoothie', tag: 'เบอร์รี่เลิฟเวอร์' },
-      { id: 13, title: 'แอปเปิ้ลเขียวแครอทปั่น (Green Apple Carrot)', desc: 'น้ำแอปเปิ้ลเขียวปั่นผสมแครอทสด บำรุงสายตาและดูแลผิวพรรณสดใส', price: 40, category: 'smoothie', tag: 'บำรุงผิว' },
-      { id: 14, title: 'มะเขือเทศบิวตี้ปั่น (Tomato Beauty)', desc: 'มะเขือเทศสีแดงสดปั่นใส่น้ำเชื่อมบางเบาและเกลือนิดๆ อร่อยทานง่ายบำรุงแก้มแดง', price: 35, category: 'smoothie', tag: 'แก้มแดงใส' },
-      { id: 15, title: 'แคนตาลูปนมสดปั่น (Cantaloupe Milk)', desc: 'แคนตาลูปหวานกรอบ กลิ่นหอมเป็นเอกลักษณ์ ปั่นผสมนมสดแท้หวานกลิ่นนมละมุน', price: 40, category: 'smoothie', tag: 'หอมละมุน' },
-      { id: 16, title: 'เสาวรสมะนาวปั่น (Passion Lemon)', desc: 'เสาวรสแท้คว้านสดเติมมะนาวคั้น ปั่นเปรี้ยวสุดใจ คอผลไม้เปรี้ยวห้ามพลาด', price: 35, category: 'smoothie', tag: 'เปรี้ยวจัด' },
-      { id: 17, title: 'ลิ้นจี่จักรพรรดิ์ปั่น (Emperor Lychee)', desc: 'เนื้อลิ้นจี่จักรพรรดิรสหวานหอมมีเสน่ห์ ปั่นละเอียดสดชื่น กลิ่นฟุ้งละมุนใจ', price: 40, category: 'smoothie', tag: 'กลิ่นหอมดอกไม้' },
-      { id: 18, title: 'ทุเรียนหมอนทองปั่นนมสด (Premium Durian Milk)', desc: 'เนื้อทุเรียนหมอนทองคัดเกรดหอมหวานเข้มข้น ปั่นกับนมสดสูตรพิเศษ มันสะใจ', price: 89, category: 'smoothie', tag: 'พรีเมียมลิมิเต็ด' },
-      { id: 19, title: 'มังคุดราชินีผลไม้ปั่น (Queen Mangosteen)', desc: 'เนื้อมังคุดสีขาวคั้นสด ปั่นได้รสเปรี้ยวอมหวานอ่อนโยน ดีต่อสุขภาพ', price: 50, category: 'smoothie', tag: 'ราชินีผลไม้' },
-      { id: 20, title: 'มะละกอนมสดปั่น (Papaya Milk Smoothie)', desc: 'มะละกอสุกหวานธรรมชาติปั่นรวมนมสด ได้เนื้อเนียนนุ่ม ดีต่อระบบย่อยอาหาร', price: 35, category: 'smoothie', tag: 'ช่วยย่อย' },
+    // Fetch products from database
+    const dbProducts = DB.getProducts();
+    
+    // Map database products to client menuItems
+    const menuItems = dbProducts.map(p => {
+      // Map category to client categories (smoothie, cold, hot, snacks)
+      let cat = 'smoothie';
+      const dbCat = (p.category || '').toLowerCase();
+      if (dbCat === 'coffee' || dbCat === 'tea' || dbCat === 'soda' || dbCat === 'cold') {
+        cat = 'cold';
+      } else if (dbCat === 'hot') {
+        cat = 'hot';
+      } else if (dbCat === 'snacks' || dbCat === 'snack') {
+        cat = 'snacks';
+      } else {
+        // signature, smoothies, healthy, etc.
+        cat = 'smoothie';
+      }
 
-      // CATEGORY: COLD (20 items)
-      { id: 21, title: 'ชาเขียวมัทฉะเย็น (Iced Matcha Green Tea)', desc: 'ผงมัทฉะแท้นำเข้าจากญี่ปุ่นชงแก้วต่อแก้ว ผสมนมสดแท้เย็นชื่นใจ', price: 35, category: 'cold', tag: 'เมนูยอดนิยม' },
-      { id: 22, title: 'โกโก้ดาร์กพรีเมียมเย็น (Iced Cocoa)', desc: 'ผงโกโก้เข้มข้น รสชาติดาร์กสะใจ ชงผสมสูตรหวานน้อย เหมาะสำหรับคอโกโก้', price: 35, category: 'cold', tag: 'เข้มข้น' },
-      { id: 23, title: 'ชานมไต้หวันต้นตำรับ (Traditional Milk Tea)', desc: 'ชาดำปรุงพิเศษ หอมใบชาแท้ ต้มสดใหม่ทุกวัน รสชาติกลมกล่อมหอมฟุ้ง', price: 30, category: 'cold', tag: 'คลาสสิก' },
-      { id: 24, title: 'อเมริกาโน่น้ำส้มเย็น (Iced Americano Orange)', desc: 'กาแฟเอสเพรสโซ่ช็อตเข้มข้น เททับลงบนน้ำส้มคั้นสด หวานขมลงตัวชื่นใจ', price: 45, category: 'cold', tag: 'สูตรตื่นนอน' },
-      { id: 25, title: 'นมสดคาราเมลเย็น (Iced Caramel Milk)', desc: 'นมสดแท้เย็นจัด ราดซอสคาราเมลโฮมเมดหอมหวานหอมฟุ้งเคี้ยวเพลิน', price: 35, category: 'cold', tag: 'เด็กทานได้' },
-      { id: 26, title: 'ชาดำเย็นมะนาว (Iced Lemon Tea)', desc: 'ชาดำรสเข้มสไตล์ไทย คั้นน้ำมะนาวสดแท้ลงไป ดื่มแล้วแก้กระหายชุ่มคอ', price: 30, category: 'cold', tag: 'ชุ่มคอ' },
-      { id: 27, title: 'นมชมพูเย็นพาสเทล (Iced Pink Milk)', desc: 'นมสดปรุงผสมน้ำหวานสีแดงกลิ่นสตรอว์เบอร์รี่ หวานหอมวัยเด็กยอดฮิต', price: 30, category: 'cold', tag: 'หวานชมพู' },
-      { id: 28, title: 'เอสเพรสโซ่เย็นเข้มข้น (Iced Espresso)', desc: 'กาแฟสไตล์ไทยรสเข้มข้นกลมกล่อม หวานมันสะใจ ปลุกพลังงานในตัวคุณ', price: 40, category: 'cold', tag: 'กาแฟเข้ม' },
-      { id: 29, title: 'คาปูชิโน่เย็นฟองนุ่ม (Iced Cappuccino)', desc: 'คาปูชิโน่เย็นรสชาติละมุน ท็อปด้วยฟองนมหนานุ่มฟูน่ารับประทาน', price: 45, category: 'cold', tag: 'ฟองนมนุ่ม' },
-      { id: 30, title: 'ลาเต้นมสดเย็น (Iced Cafe Latte)', desc: 'กาแฟเอสเพรสโซ่ผสมกับนมสดแท้ 100% สัดส่วนลงตัว กลิ่นละมุนกลมกล่อม', price: 45, category: 'cold', tag: 'ลาเต้อาร์ต' },
-      { id: 31, title: 'ชาไทยเย็นโบราณ (Iced Thai Tea)', desc: 'ชาไทยสีส้มเป็นเอกลักษณ์ กลิ่นชาหอมกรุ่น ปรุงหวานมันกลมกล่อมแบบไทยเดิม', price: 35, category: 'cold', tag: 'เอกลักษณ์ไทย' },
-      { id: 32, title: 'ชาพรีเมียมเอิร์ลเกรย์เย็น (Iced Earl Grey)', desc: 'ชาเอิร์ลเกรย์กลิ่นมะกรูดหอมสะอ้าน ชงแบบเย็นใส่น้ำผึ้งบางเบาชุ่มชื่นคอ', price: 35, category: 'cold', tag: 'ชากลิ่นหอม' },
-      { id: 33, title: 'อิตาเลียนบลูฮาวายโซดา (Blue Hawaii Soda)', desc: 'น้ำเชื่อมบลูฮาวายโซดาซ่า ท็อปเลเยอร์ ดับร้อน ซ่าสะใจ ท่องทะเล', price: 30, category: 'cold', tag: 'โซดาซ่า' },
-      { id: 34, title: 'สตรอว์เบอร์รีโซดาซ่า (Strawberry Soda)', desc: 'ไซรัปสตรอว์เบอร์รีเข้มข้นปรุงผสมโซดาซ่าซ่า รสชาติเปรี้ยวซ่าเข้ากัน', price: 30, category: 'cold', tag: 'เมนูเด็ก' },
-      { id: 35, title: 'แดงมะนาวโซดา (Red Lemon Soda)', desc: 'น้ำแดงเฮลบลูบอยผสมน้ำมะนาวแท้บีบสด เติมโซดา เพิ่มพลังความเปรี้ยวหวานซ่า', price: 30, category: 'cold', tag: 'แก้เลี่ยน' },
-      { id: 36, title: 'กาแฟมอคค่าเย็น (Iced Cafe Mocha)', desc: 'เอสเพรสโซ่รสเข้มปรุงผสมโกโก้เข้มข้นและนมสดเย็น สำหรับคนรักช็อกโกแลตและกาแฟ', price: 45, category: 'cold', tag: 'ช็อกโก้คอฟฟี่' },
-      { id: 37, title: 'ชาเขียวมะลิเย็น (Iced Jasmine Green Tea)', desc: 'ชาเขียวใสกลิ่นมะลิหอมระรื่นใจ ปราศจากน้ำตาล แคลอรี่ต่ำ สบายท้อง', price: 30, category: 'cold', tag: 'ไร้น้ำตาล' },
-      { id: 38, title: 'น้ำผึ้งมะนาวโซดา (Honey Lemon Soda)', desc: 'น้ำผึ้งแท้ป่าเดือนห้าบีบมะนาวคั้น เติมโซดา ซ่าหวานเปรี้ยวชุ่มคอ บำรุงร่างกาย', price: 35, category: 'cold', tag: 'น้ำผึ้งแท้' },
-      { id: 39, title: 'ชาพีชเย็นชื่นใจ (Iced Peach Tea)', desc: 'ชาพีชเย็นกลิ่นหอมฟุ้ง รสเปรี้ยวหวานอ่อนๆ มีเนื้อพีชหั่นเต๋าชิ้นโตท็อปปิ้ง', price: 35, category: 'cold', tag: 'กลิ่นพีชหอม' },
-      { id: 40, title: 'นมเผือกหอมเย็น (Iced Taro Milk)', desc: 'นมสดเย็นชงผสมผงเผือกหอมพรีเมียม สีม่วงพาสเทล หอมมันกลมกล่อมไม่ซ้ำใคร', price: 35, category: 'cold', tag: 'เมนูเผือก' },
+      // Map tag (recommended / out of stock)
+      let tag = p.is_recommended ? 'เมนูแนะนำ' : '';
+      if (p.is_out_of_stock) {
+        tag = 'สินค้าหมด';
+      }
 
-      // CATEGORY: HOT (20 items)
-      { id: 41, title: 'ชานมน้ำผึ้งร้อน (Hot Honey Milk Tea)', desc: 'ชาดำร้อนหอมกรุ่น ผสมนมสดอุ่นๆ และน้ำผึ้ง ช่วยให้ผ่อนคลายสบายคอ', price: 35, category: 'hot', tag: 'อุ่นท้อง' },
-      { id: 42, title: 'เอสเพรสโซ่ร้อน (Hot Espresso)', desc: 'กาแฟอาราบิก้าแท้เข้มข้น 1 ช็อต เข้มสะใจ ปลุกประสาทสัมผัสยามเช้า', price: 30, category: 'hot', tag: 'เข้มข้นสูง' },
-      { id: 43, title: 'อเมริกาโน่ร้อน (Hot Americano)', desc: 'เอสเพรสโซ่ช็อตร้อนเจือจางน้ำอุ่น สัมผัสรสกาแฟอาราบิก้าคั่วกลางหอมละมุน', price: 30, category: 'hot', tag: 'กาแฟดำร้อน' },
-      { id: 44, title: 'ลาเต้ร้อน (Hot Latte)', desc: 'กาแฟร้อนรสนุ่มนวลราดฟองนมละเอียด ทำลวดลายลาเต้อาร์ตสวยงามอุ่นสบายท้อง', price: 35, category: 'hot', tag: 'ลาเต้อาร์ตร้อน' },
-      { id: 45, title: 'คาปูชิโน่ร้อน (Hot Cappuccino)', desc: 'กาแฟร้อนเข้มปานกลาง โรยผงโกโก้/ซินนามอนบางเบา ท็อปฟองนมนุ่มหนา', price: 35, category: 'hot', tag: 'คาปูร้อน' },
-      { id: 46, title: 'โกโก้ร้อนเข้มข้น (Hot Cocoa)', desc: 'โกโก้นมร้อนสูตรพิเศษ รสหวานน้อยอบอุ่น รสชาติดาร์กผ่อนคลายความเครียด', price: 35, category: 'hot', tag: 'อุ่นใจ' },
-      { id: 47, title: 'นมสดอุ่นน้ำผึ้ง (Hot Honey Milk)', desc: 'นมสดแท้สตรีมร้อนอุณหภูมิกำลังดี ชงผสมน้ำผึ้งป่าธรรมชาติ ดื่มง่ายหลับสบาย', price: 30, category: 'hot', tag: 'สำหรับก่อนนอน' },
-      { id: 48, title: 'ชามะนาวร้อน (Hot Lemon Tea)', desc: 'ชาดำร้อนคั้นมะนาวสด เติมน้ำตาลเล็กน้อย ช่วยผ่อนคลายคอ บรรเทาหวัด', price: 30, category: 'hot', tag: 'ชุ่มคอแก้หวัด' },
-      { id: 49, title: 'ชาไทยร้อน (Hot Thai Tea)', desc: 'ชาไทยร้อน กลิ่นหอมเย้ายวน รสกลมกล่อมนมข้นหวาน จิบคู่ขนมปังอบใหม่', price: 30, category: 'hot', tag: 'สูตรดั้งเดิม' },
-      { id: 50, title: 'มัทฉะลาเต้ร้อน (Hot Matcha Latte)', desc: 'ผงชาเขียวมัทฉะอูจิสตรีมพร้อมนมสดร้อน เนื้อเนียนหอมชาเขียวแท้สไตล์ญี่ปุ่น', price: 40, category: 'hot', tag: 'มัทฉะร้อน' },
-      { id: 51, title: 'มอคค่าร้อน (Hot Mocha)', desc: 'กาแฟร้อนผสมช็อกโกแลตเข้มข้นกลมกล่อม ราดฟองนมเสิร์ฟอุ่นๆ กลิ่นหอมฟุ้ง', price: 35, category: 'hot', tag: 'มอคค่านมร้อน' },
-      { id: 52, title: 'นมเผือกร้อน (Hot Taro Milk)', desc: 'นมสดเผือกหอมอุ่นๆ เนื้อสีม่วงละมุน รสชาติหวานมันอบอวล สดชื่นตอนเช้า', price: 30, category: 'hot', tag: 'เผือกอุ่นๆ' },
-      { id: 53, title: 'ชาเขียวมะลิร้อน (Hot Jasmine Tea)', desc: 'ใบชาเขียวอบดอกมะลิร้อนๆ กลิ่นผ่อนคลายใจ ปราศจากน้ำตาล ขับสารพิษ', price: 30, category: 'hot', tag: 'ชาสมุนไพร' },
-      { id: 54, title: 'ชาคาโมมายล์เก๊กฮวยร้อน (Hot Chamomile Tea)', desc: 'ดอกคาโมมายล์อบแห้งชงร้อนผสมดอกเก๊กฮวย กลิ่นผ่อนคลาย เหมาะแก่การพักผ่อน', price: 30, category: 'hot', tag: 'นอนหลับฝันดี' },
-      { id: 55, title: 'ชาขิงน้ำผึ้งร้อน (Hot Ginger Honey Tea)', desc: 'น้ำขิงต้มสดรสเผ็ดร้อนตัดหวานด้วยน้ำผึ้งแท้ บรรเทาอาการท้องอืดท้องเฟ้อ', price: 30, category: 'hot', tag: 'สมุนไพรดี' },
-      { id: 56, title: 'นมอัญชันร้อน (Hot Butterfly Pea Milk)', desc: 'นมสดร้อนสกัดน้ำดอกอัญชันสีน้ำเงินพาสเทล หอมน้ำผึ้งและนมสดแท้', price: 30, category: 'hot', tag: 'สีสวยธรรมชาติ' },
-      { id: 57, title: 'ชาเอิร์ลเกรย์ร้อน (Hot Earl Grey Tea)', desc: 'ชาฝรั่งเอิร์ลเกรย์ร้อนพรีเมียม ส่งกลิ่นน้ำมันมะกรูดอโรมาหอมสะอาด ชื่นใจ', price: 30, category: 'hot', tag: 'ชาพรีเมียม' },
-      { id: 58, title: 'ชาอูหลงพรีเมียมร้อน (Hot Oolong Tea)', desc: 'ใบชาอูหลงเกรดคัดสรร ชงร้อนกลิ่นชาเข้มลุ่มลึก ล้างไขมัน ช่วยย่อยอาหาร', price: 35, category: 'hot', tag: 'ล้างไขมันดี' },
-      { id: 59, title: 'กาแฟส้มร้อน (Hot Americano Orange)', desc: 'กาแฟอเมริกาโน่ร้อนเททับน้ำส้มสายน้ำผึ้งอุ่นบางเบา เปรี้ยวหวานขมกลมกล่อม', price: 40, category: 'hot', tag: 'แปลกใหม่' },
-      { id: 60, title: 'นมสดคาราเมลร้อน (Hot Caramel Milk)', desc: 'นมสดสตรีมร้อนหอมๆ ผสมคาราเมลอุ่น หวานฉ่ำ คลารายเครียดได้ดีในวันเหนื่อยล้า', price: 30, category: 'hot', tag: 'ผ่อนคลาย' }
-    ];
+      return {
+        id: p.id,
+        title: p.name,
+        desc: p.description || p.name,
+        price: parseFloat(p.price),
+        category: cat,
+        tag: tag || p.category || 'เครื่องดื่ม',
+        isOutOfStock: !!p.is_out_of_stock,
+        imageUrl: p.image_url || ''
+      };
+    });
 
     // Render Menu Cards
     let activeFilter = 'all';
@@ -467,10 +435,14 @@
         else if (item.category === 'hot') catIcon = '☕';
         else catIcon = '🍰';
 
+        const imgHtml = item.imageUrl 
+          ? `<img src="${item.imageUrl}" style="width: 100%; height: 100%; object-fit: cover;" alt="Drink">`
+          : `<span style="font-size: 3.5rem;">${catIcon}</span>`;
+
         card.innerHTML = `
           <div class="menu-card-img-placeholder">
             <span class="menu-tag">${item.tag}</span>
-            <span style="font-size: 3.5rem;">${catIcon}</span>
+            ${imgHtml}
           </div>
           <h3 class="menu-card-title">${item.title}</h3>
           <p class="menu-card-desc">${item.desc}</p>
@@ -479,8 +451,8 @@
               <span class="menu-card-price" id="price-val-${item.id}">${item.price} ฿</span>
             </div>
             ${item.category === 'snacks' ? '' : `
-            <button class="btn btn-primary" style="padding: 6px 14px; font-size: 0.85rem;" onclick="openBookingModal(${item.id})">
-              🗓️ จองคิวรับที่ร้าน
+            <button class="btn btn-primary" style="padding: 6px 14px; font-size: 0.85rem;" ${item.isOutOfStock ? 'disabled style="background:var(--border-color);border-color:var(--border-color);color:var(--text-sub);cursor:not-allowed;"' : ''} onclick="openBookingModal('${item.id}')">
+              ${item.isOutOfStock ? '❌ หมดชั่วคราว' : '🗓️ จองคิวรับที่ร้าน'}
             </button>
             `}
           </div>

@@ -681,3 +681,59 @@ body {
   border: 1px solid var(--border-color);
   background: #000;
 }
+
+/* Responsive Admin Layout */
+@media (max-width: 768px) {
+  .admin-layout {
+    flex-direction: column;
+  }
+  .admin-sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 16px 0;
+  }
+  .admin-sidebar-logo {
+    padding: 0 16px 12px;
+    justify-content: center;
+  }
+  .admin-nav {
+    margin-top: 12px;
+    margin-bottom: 12px;
+  }
+  .admin-nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 12px;
+  }
+  .admin-nav-item {
+    margin: 0;
+  }
+  .admin-nav-item a {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    border-left: none !important;
+  }
+  .admin-nav-item.active a {
+    background: rgba(0, 240, 255, 0.1);
+    color: var(--accent-cyan);
+    border-bottom: 2px solid var(--accent-cyan);
+  }
+  .admin-content {
+    padding: 24px 16px;
+  }
+  .admin-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+  }
+  .admin-header button {
+    width: 100%;
+  }
+}

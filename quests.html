@@ -344,7 +344,7 @@
     </div>
   </main>
 
-  <script src="db.js?v=2"></script>
+  <script src="db.js?v=3"></script>
   <script>
     let currentUser = null;
 
@@ -357,7 +357,7 @@
       }
       // Set nav rank & points
       document.getElementById('navUserPoints').textContent = `${currentUser.points} แต้ม`;
-      const rank = DB.getRank(currentUser.points);
+      const rank = DB.getRank(currentUser.totalLifetimePoints || currentUser.points);
       document.getElementById('navRankEmoji').textContent = rank.logo;
     }
 

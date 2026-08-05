@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>จัดการเมนูเครื่องดื่ม - แอดมินร้านพี่ต้อม</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .menu-action-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    .toggle-switch-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .badge-recommended {
+      color: var(--accent-cyan);
+      border: 1px solid var(--accent-cyan);
+      background: rgba(0, 240, 255, 0.08);
+    }
+    .badge-out {
+      color: var(--accent-red);
+      border: 1px solid var(--accent-red);
+      background: rgba(255, 56, 96, 0.08);
+    }
+    .badge-instock {
+      color: var(--accent-green);
+      border: 1px solid var(--accent-green);
+      background: rgba(57, 255, 20, 0.08);
+    }
+    
+    /* Product Modal custom styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(6, 11, 19, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .modal-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-container {
+      width: 90%;
+      max-width: 500px;
+    }
+    .product-img-preview-mini {
+      width: 50px;
+      height: 50px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 1px solid var(--border-color);
+      background: var(--dark-bg);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="admin-layout">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="#00f0ff">
+          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+        </svg>
+        <span class="neon-text-cyan">ADMIN PORTAL</span>
+      </div>
+      <nav class="admin-nav">
+        <ul>
+          <li class="admin-nav-item"><a href="admin-dashboard.html">📈 ภาพรวมระบบ (Overview)</a></li>
+          <li class="admin-nav-item"><a href="admin-orders.html">📦 ออเดอร์การสั่งจอง (Bookings)</a></li>
+          <li class="admin-nav-item"><a href="admin-members.html">👥 จัดการสมาชิก (Members)</a></li>
+          <li class="admin-nav-item"><a href="admin-scans.html">📷 ประวัติสะสมแต้ม (Scans)</a></li>
+          <li class="admin-nav-item active"><a href="admin-menu.html">🍹 จัดการเมนูร้าน (Products)</a></li>
+          <li class="admin-nav-item"><a href="admin-settings.html">⚙️ ตั้งค่าระบบ (Settings)</a></li>
+        </ul>
+      </nav>
+      <div style="padding: 24px;">
+        <button class="btn btn-secondary" onclick="logoutAdmin()" style="width: 100%; border-color: var(--accent-red); color: var(--accent-red);">
+          🚪 ออกจากระบบ
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-content">
+      
+      <header class="admin-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div>
+          <h1 style="font-size: 1.8rem; font-weight: 800;">🍹 จัดการรายการเมนูเครื่องดื่ม (Product Control)</h1>
+          <p style="color: var(--text-sub); font-size: 0.9rem;">เพิ่มเมนูใหม่ ลบเมนูที่ไม่ได้ใช้ หรือแก้ไขราคา รูปภาพ และสถานะของสินค้าหน้าร้านได้ทันที</p>
+        </div>
+        <button class="btn btn-primary" onclick="openAddModal()" style="display: flex; align-items: center; gap: 8px;">
+          ➕ เพิ่มเมนูใหม่
+        </button>
+      </header>
+
+      <!-- Products List Card -->
+      <section class="glass-card">
+        <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+          <span>📋 รายชื่อเมนูเครื่องดื่มหน้าร้าน</span>
+          <span style="font-size: 0.85rem; color: var(--accent-cyan); font-weight: 500;" id="productsCount">มีทั้งหมด 0 เมนู</span>
+        </h3>
+
+        <!-- Filters (Category tabs) -->
+        <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+          <button class="btn btn-primary" id="filterBtnAll" onclick="filterAdminProducts('all')" style="padding: 8px 16px; font-size: 0.85rem;">ทั้งหมด</button>
+          <button class="btn btn-secondary" id="filterBtnSmoothie" onclick="filterAdminProducts('smoothie')" style="padding: 8px 16px; font-size: 0.85rem;">เมนูปั่น (Smoothie)</button>
+          <button class="btn btn-secondary" id="filterBtnCold" onclick="filterAdminProducts('cold')" style="padding: 8px 16px; font-size: 0.85rem;">เมนูเย็น (Cold)</button>
+          <button class="btn btn-secondary" id="filterBtnHot" onclick="filterAdminProducts('hot')" style="padding: 8px 16px; font-size: 0.85rem;">เมนูร้อน (Hot)</button>
+        </div>
+
+        <div class="custom-table-wrapper">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>รูปภาพ</th>
+                <th>ชื่อเมนูน้ำปั่น</th>
+                <th>ราคาขาย</th>
+                <th>หมวดหมู่</th>
+                <th>เมนูแนะนำ</th>
+                <th>สถานะสต็อก</th>
+                <th>จัดการข้อมูล</th>
+              </tr>
+            </thead>
+            <tbody id="productsTableBody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <div id="noProductsMsg" style="text-align: center; color: var(--text-sub); padding: 40px 0; display: none;">
+          ยังไม่มีรายการเมนูเครื่องดื่มบันทึกอยู่ในระบบ
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- Product Add/Edit Modal Overlay -->
+  <div class="modal-overlay" id="productModal">
+    <div class="glass-card modal-container">
+      <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 20px; color: var(--accent-cyan);" id="modalTitle">🍹 เพิ่มเมนูน้ำปั่นใหม่</h3>
+      
+      <div id="modalError" style="color: var(--accent-red); background: rgba(255, 56, 96, 0.1); border: 1px solid var(--accent-red); padding: 10px; border-radius: 8px; margin-bottom: 16px; display: none; font-size: 0.9rem; text-align: center;"></div>
+      
+      <form id="productForm">
+        <input type="hidden" id="productIdInput">
+        
+        <div class="form-group">
+          <label class="form-label" for="productNameInput">ชื่อเมนูเครื่องดื่ม</label>
+          <input class="form-input" type="text" id="productNameInput" placeholder="เช่น สตรอว์เบอร์รีชีสเค้กปั่น" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label class="form-label" for="productPriceInput">ราคาขาย (บาท)</label>
+            <input class="form-input" type="number" id="productPriceInput" min="0" placeholder="เช่น 65" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="productCategoryInput">หมวดหมู่</label>
+            <select class="form-input" id="productCategoryInput" style="background: var(--dark-bg); color: #fff;">
+              <option value="Signature" style="background: #151f32; color: #fff;">Signature (เมนูปั่น)</option>
+              <option value="Smoothies" style="background: #151f32; color: #fff;">Smoothies (เมนูปั่น)</option>
+              <option value="Healthy" style="background: #151f32; color: #fff;">Healthy (เมนูปั่น)</option>
+              <option value="Coffee" style="background: #151f32; color: #fff;">Coffee (เมนูเย็น)</option>
+              <option value="Tea" style="background: #151f32; color: #fff;">Tea (เมนูเย็น)</option>
+              <option value="Soda" style="background: #151f32; color: #fff;">Soda (เมนูเย็น)</option>
+              <option value="Hot" style="background: #151f32; color: #fff;">Hot (เมนูร้อน)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="productImageInput">ลิงก์รูปภาพเมนู (URL หรือใส่เป็น Base64 ก็ได้)</label>
+          <input class="form-input" type="text" id="productImageInput" placeholder="https://example.com/smoothie.png (เว้นว่างไว้ใช้รูปจำลอง)">
+        </div>
+
+        <div style="display: flex; gap: 24px; margin: 16px 0;">
+          <label class="toggle-switch-container" style="cursor: pointer;">
+            <input type="checkbox" id="productRecommendInput" style="cursor: pointer; width: 18px; height: 18px;">
+            <span>⭐ แนะนำหน้าร้าน</span>
+          </label>
+          <label class="toggle-switch-container" style="cursor: pointer;">
+            <input type="checkbox" id="productOutOfStockInput" style="cursor: pointer; width: 18px; height: 18px;">
+            <span>❌ สินค้าหมดชั่วคราว</span>
+          </label>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="closeProductModal()" style="flex: 1;">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary" style="flex: 1;">💾 บันทึกข้อมูล</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="db.js?v=3"></script>
+  <script>
+    // Security check
+    if (!DB.isAdminLoggedIn()) {
+      window.location.href = 'admin-login.html';
+    }
+
+    function logoutAdmin() {
+      DB.adminLogout();
+      window.location.href = 'admin-login.html';
+    }
+
+    const modal = document.getElementById('productModal');
+    const form = document.getElementById('productForm');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalError = document.getElementById('modalError');
+
+    // Inputs
+    const idInput = document.getElementById('productIdInput');
+    const nameInput = document.getElementById('productNameInput');
+    const priceInput = document.getElementById('productPriceInput');
+    const categoryInput = document.getElementById('productCategoryInput');
+    const imageInput = document.getElementById('productImageInput');
+    const recommendInput = document.getElementById('productRecommendInput');
+    const outOfStockInput = document.getElementById('productOutOfStockInput');
+
+    function openAddModal() {
+      form.reset();
+      idInput.value = '';
+      modalTitle.textContent = '🍹 เพิ่มเมนูน้ำปั่นใหม่';
+      modalError.style.display = 'none';
+      modal.classList.add('show');
+    }
+
+    function openEditModal(productId) {
+      modalError.style.display = 'none';
+      const products = DB.getProducts();
+      const product = products.find(p => p.id === productId);
+      if (!product) return;
+
+      idInput.value = product.id;
+      nameInput.value = product.name;
+      priceInput.value = product.price;
+      categoryInput.value = product.category || 'Smoothies';
+      imageInput.value = product.image_url || '';
+      recommendInput.checked = !!product.is_recommended;
+      outOfStockInput.checked = !!product.is_out_of_stock;
+
+      modalTitle.textContent = '✏️ แก้ไขข้อมูลเมนูน้ำปั่น';
+      modal.classList.add('show');
+    }
+
+    function closeProductModal() {
+      modal.classList.remove('show');
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      modalError.style.display = 'none';
+
+      const name = nameInput.value;
+      const price = parseFloat(priceInput.value);
+      const category = categoryInput.value;
+      const imageUrl = imageInput.value;
+      const isRec = recommendInput.checked;
+      const isOut = outOfStockInput.checked;
+      const id = idInput.value;
+
+      try {
+        if (price < 0) throw new Error('ราคาห้ามติดลบ');
+
+        if (id) {
+          // Edit mode
+          DB.updateProduct(id, name, price, category, isRec, isOut, imageUrl);
+        } else {
+          // Add mode
+          DB.addProduct(name, price, category, isRec, isOut, imageUrl);
+        }
+        
+        closeProductModal();
+        renderProducts();
+      } catch (err) {
+        modalError.textContent = err.message;
+        modalError.style.display = 'block';
+      }
+    });
+
+    function deleteProduct(productId) {
+      if (confirm('คุณแน่ใจว่าต้องการลบเมนูเครื่องดื่มนี้ออกจากร้านเป็นการถาวรใช่หรือไม่?')) {
+        try {
+          DB.deleteProduct(productId);
+          renderProducts();
+        } catch (err) {
+          alert('เกิดข้อผิดพลาดในการลบ: ' + err.message);
+        }
+      }
+    }
+
+    function toggleStock(productId) {
+      try {
+        DB.toggleProductStock(productId);
+        renderProducts();
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด: ' + err.message);
+      }
+    }
+
+    function toggleRecommend(productId) {
+      try {
+        DB.toggleProductRecommendation(productId);
+        renderProducts();
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด: ' + err.message);
+      }
+    }
+
+    let activeFilter = 'all';
+
+    function filterAdminProducts(category) {
+      activeFilter = category;
+      
+      // Update tab buttons styling
+      document.getElementById('filterBtnAll').className = category === 'all' ? 'btn btn-primary' : 'btn btn-secondary';
+      document.getElementById('filterBtnSmoothie').className = category === 'smoothie' ? 'btn btn-primary' : 'btn btn-secondary';
+      document.getElementById('filterBtnCold').className = category === 'cold' ? 'btn btn-primary' : 'btn btn-secondary';
+      document.getElementById('filterBtnHot').className = category === 'hot' ? 'btn btn-primary' : 'btn btn-secondary';
+      
+      renderProducts();
+    }
+
+    function renderProducts() {
+      const tbody = document.getElementById('productsTableBody');
+      const noMsg = document.getElementById('noProductsMsg');
+      const countText = document.getElementById('productsCount');
+
+      tbody.innerHTML = '';
+      const allProducts = DB.getProducts();
+
+      // Filter products based on active tab
+      const products = allProducts.filter(p => {
+        if (activeFilter === 'all') return true;
+        
+        let cat = 'smoothie';
+        const dbCat = (p.category || '').toLowerCase();
+        if (dbCat === 'coffee' || dbCat === 'tea' || dbCat === 'soda' || dbCat === 'cold') {
+          cat = 'cold';
+        } else if (dbCat === 'hot') {
+          cat = 'hot';
+        } else {
+          cat = 'smoothie';
+        }
+        return cat === activeFilter;
+      });
+
+      countText.textContent = `มีทั้งหมด ${products.length} เมนู`;
+
+      if (products.length === 0) {
+        noMsg.style.display = 'block';
+        return;
+      }
+      noMsg.style.display = 'none';
+
+      products.forEach(p => {
+        const row = document.createElement('tr');
+        
+        // Thumbnail preview
+        const imgHtml = p.image_url 
+          ? `<img src="${p.image_url}" class="product-img-preview-mini" alt="Drink">`
+          : `<span style="font-size: 1.8rem; display: inline-block; padding: 4px;">🍹</span>`;
+
+        // Recommendation badge
+        const recBadge = p.is_recommended
+          ? `<span class="badge badge-recommended" style="cursor: pointer;" onclick="toggleRecommend('${p.id}')">⭐ แนะนำ (กดสลับ)</span>`
+          : `<span class="badge" style="border: 1px dashed var(--text-sub); color: var(--text-sub); cursor: pointer;" onclick="toggleRecommend('${p.id}')">ปกติ (กดสลับ)</span>`;
+
+        // Stock badge
+        const stockBadge = p.is_out_of_stock
+          ? `<span class="badge badge-out" style="cursor: pointer;" onclick="toggleStock('${p.id}')">❌ หมดชั่วคราว (กดสลับ)</span>`
+          : `<span class="badge badge-instock" style="cursor: pointer;" onclick="toggleStock('${p.id}')">✅ พร้อมขาย (กดสลับ)</span>`;
+
+        row.innerHTML = `
+          <td>${imgHtml}</td>
+          <td><strong>${p.name}</strong></td>
+          <td style="font-weight: bold; color: var(--accent-cyan);">${parseFloat(p.price).toFixed(2)} บาท</td>
+          <td><span style="color: var(--text-sub); font-size: 0.85rem;">${p.category || 'ทั่วไป'}</span></td>
+          <td>${recBadge}</td>
+          <td>${stockBadge}</td>
+          <td>
+            <div class="menu-action-buttons">
+              <button class="btn btn-secondary" onclick="openEditModal('${p.id}')" style="padding: 6px 10px; font-size: 0.8rem; border-color: var(--accent-cyan); color: var(--accent-cyan);">✏️ แก้ไข</button>
+              <button class="btn btn-secondary" onclick="deleteProduct('${p.id}')" style="padding: 6px 10px; font-size: 0.8rem; border-color: var(--accent-red); color: var(--accent-red);">🗑️ ลบ</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // Initial render
+    renderProducts();
+
+    // Storage Sync handler
+    window.addEventListener('storage', () => {
+      renderProducts();
+    });
+  </script>
+</body>
+</html>

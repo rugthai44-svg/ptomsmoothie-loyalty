@@ -79,6 +79,34 @@ function mapUserToSupabase(u) {
   };
 }
 
+// Image compression helper for Base64 (webcam photos / file uploads)
+async function compressBase64Image(base64Str, maxWidth = 500, quality = 0.6) {
+  if (!base64Str || typeof base64Str !== 'string' || !base64Str.startsWith('data:image/')) {
+    return base64Str;
+  }
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => {
+      resolve(base64Str);
+    };
+    img.src = base64Str;
+  });
+}
+
 // REST Helper as fallback
 async function sbQuery(path, method = 'GET', body = null, headers = {}) {
   if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.key) return null;
@@ -147,13 +175,30 @@ async function syncFromSupabase() {
     // 2. Sync scans
     const scans = await sbQuery('ptom_scans?select=*&order=timestamp.desc');
     if (scans) {
-      localStorage.setItem('ptom_scans', JSON.stringify(scans));
+      const mappedScans = scans.map(s => ({
+        id: s.id,
+        username: s.username,
+        pointsGained: s.pointsgained !== undefined ? s.pointsgained : s.pointsGained,
+        status: s.status,
+        description: s.description,
+        photoData: s.photodata !== undefined ? s.photodata : s.photoData,
+        timestamp: s.timestamp
+      }));
+      localStorage.setItem('ptom_scans', JSON.stringify(mappedScans));
     }
 
     // 3. Sync redemptions
     const redemptions = await sbQuery('ptom_redemptions?select=*&order=timestamp.desc');
     if (redemptions) {
-      localStorage.setItem('ptom_redemptions', JSON.stringify(redemptions));
+      const mappedRedeems = redemptions.map(r => ({
+        id: r.id,
+        username: r.username,
+        pointsDeducted: r.points_deducted !== undefined ? r.points_deducted : r.pointsDeducted,
+        status: r.status,
+        photoData: r.photo_data !== undefined ? r.photo_data : r.photoData,
+        timestamp: r.timestamp
+      }));
+      localStorage.setItem('ptom_redemptions', JSON.stringify(mappedRedeems));
     }
 
     // 4. Sync orders
@@ -212,8 +257,34 @@ async function syncFromSupabase() {
 
     // 7. Sync products
     const products = await sbQuery('ptom_products?select=*');
-    if (products && products.length > 0) {
-      localStorage.setItem('ptom_products', JSON.stringify(products));
+    if (products) {
+      if (products.length > 0 && products.length <= 6) {
+        // Seeding full list including Cold & Hot to Supabase
+        const fullSeeds = [
+          { name: 'ชาเขียวมัทฉะเย็น', price: 35.00, category: 'Tea', is_recommended: true, is_out_of_stock: false, image_url: '' },
+          { name: 'โกโก้ดาร์กพรีเมียมเย็น', price: 35.00, category: 'Cold', is_recommended: false, is_out_of_stock: false, image_url: '' },
+          { name: 'อเมริกาโน่น้ำส้มเย็น', price: 45.00, category: 'Coffee', is_recommended: true, is_out_of_stock: false, image_url: '' },
+          { name: 'นมสดคาราเมลเย็น', price: 35.00, category: 'Cold', is_recommended: false, is_out_of_stock: false, image_url: '' },
+          { name: 'น้ำผึ้งมะนาวโซดา', price: 35.00, category: 'Soda', is_recommended: false, is_out_of_stock: false, image_url: '' },
+          { name: 'โกโก้ร้อนเข้มข้น', price: 35.00, category: 'Hot', is_recommended: false, is_out_of_stock: false, image_url: '' },
+          { name: 'เอสเพรสโซ่ร้อน', price: 30.00, category: 'Hot', is_recommended: false, is_out_of_stock: false, image_url: '' },
+          { name: 'ลาเต้ร้อน', price: 35.00, category: 'Hot', is_recommended: false, is_out_of_stock: false, image_url: '' },
+          { name: 'นมสดอุ่นน้ำผึ้ง', price: 30.00, category: 'Hot', is_recommended: false, is_out_of_stock: false, image_url: '' }
+        ];
+        for (const item of fullSeeds) {
+          const exists = products.some(p => p.name === item.name);
+          if (!exists) {
+            await sbQuery('ptom_products', 'POST', item);
+          }
+        }
+        // Fetch again after POSTing
+        const freshProducts = await sbQuery('ptom_products?select=*');
+        if (freshProducts) {
+          localStorage.setItem('ptom_products', JSON.stringify(freshProducts));
+        }
+      } else if (products.length > 0) {
+        localStorage.setItem('ptom_products', JSON.stringify(products));
+      }
     }
 
     // Trigger UI updates
@@ -263,7 +334,16 @@ async function syncFromSupabase() {
       { id: '3', name: 'มะม่วงเสาวรสปั่น', price: 60, category: 'Smoothies', is_recommended: true, is_out_of_stock: false, image_url: '' },
       { id: '4', name: 'มิกซ์เบอร์รีสมูทตี้', price: 70, category: 'Healthy', is_recommended: false, is_out_of_stock: false, image_url: '' },
       { id: '5', name: 'กล้วยหอมช็อกโกแลตโอ๊ตมิลค์', price: 80, category: 'Healthy', is_recommended: false, is_out_of_stock: false, image_url: '' },
-      { id: '6', name: 'มะพร้าวน้ำหอมนมสดปั่น', price: 55, category: 'Smoothies', is_recommended: false, is_out_of_stock: false, image_url: '' }
+      { id: '6', name: 'มะพร้าวน้ำหอมนมสดปั่น', price: 55, category: 'Smoothies', is_recommended: false, is_out_of_stock: false, image_url: '' },
+      { id: '7', name: 'ชาเขียวมัทฉะเย็น', price: 35, category: 'Tea', is_recommended: true, is_out_of_stock: false, image_url: '' },
+      { id: '8', name: 'โกโก้ดาร์กพรีเมียมเย็น', price: 35, category: 'Cold', is_recommended: false, is_out_of_stock: false, image_url: '' },
+      { id: '9', name: 'อเมริกาโน่น้ำส้มเย็น', price: 45, category: 'Coffee', is_recommended: true, is_out_of_stock: false, image_url: '' },
+      { id: '10', name: 'นมสดคาราเมลเย็น', price: 35, category: 'Cold', is_recommended: false, is_out_of_stock: false, image_url: '' },
+      { id: '11', name: 'น้ำผึ้งมะนาวโซดา', price: 35, category: 'Soda', is_recommended: false, is_out_of_stock: false, image_url: '' },
+      { id: '12', name: 'โกโก้ร้อนเข้มข้น', price: 35, category: 'Hot', is_recommended: false, is_out_of_stock: false, image_url: '' },
+      { id: '13', name: 'เอสเพรสโซ่ร้อน', price: 30, category: 'Hot', is_recommended: false, is_out_of_stock: false, image_url: '' },
+      { id: '14', name: 'ลาเต้ร้อน', price: 35, category: 'Hot', is_recommended: false, is_out_of_stock: false, image_url: '' },
+      { id: '15', name: 'นมสดอุ่นน้ำผึ้ง', price: 30, category: 'Hot', is_recommended: false, is_out_of_stock: false, image_url: '' }
     ];
     localStorage.setItem('ptom_products', JSON.stringify(seedProducts));
   }
@@ -467,8 +547,8 @@ const DB = {
     localStorage.setItem('ptom_scans', JSON.stringify(scans));
 
     // Log Activity
-    const oldRank = this.getRank(oldPoints).name;
-    const newRank = this.getRank(newPoints).name;
+    const oldRank = this.getRank(oldLifetime).name;
+    const newRank = this.getRank(newLifetime).name;
     let desc = `${description} +${pointsGained} แต้ม (ยอดรวม: ${newPoints} แต้ม)`;
     
     if (oldRank !== newRank) {
@@ -499,14 +579,16 @@ const DB = {
       total_lifetime_points: newLifetime
     });
     
-    sbQuery('ptom_scans', 'POST', {
-      id: scanId,
-      username,
-      pointsgained: pointsGained,
-      status: 'Success',
-      description,
-      photodata: photoData,
-      timestamp: new Date().toISOString()
+    compressBase64Image(photoData).then(compressed => {
+      sbQuery('ptom_scans', 'POST', {
+        id: scanId,
+        username,
+        pointsgained: pointsGained,
+        status: 'Success',
+        description,
+        photodata: compressed,
+        timestamp: new Date().toISOString()
+      });
     });
 
     // Award Badges Check
@@ -554,13 +636,15 @@ const DB = {
     // Supabase integration
     sbQuery(`ptom_users?username=eq.${encodeURIComponent(username)}`, 'PATCH', { points_balance: users[userIdx].points });
     
-    sbQuery('ptom_redemptions', 'POST', {
-      id: redeemId,
-      username,
-      points_deducted: 100,
-      status: 'Redeemed',
-      photo_data: photoData,
-      timestamp: new Date().toISOString()
+    compressBase64Image(photoData).then(compressed => {
+      sbQuery('ptom_redemptions', 'POST', {
+        id: redeemId,
+        username,
+        points_deducted: 100,
+        status: 'Redeemed',
+        photo_data: compressed,
+        timestamp: new Date().toISOString()
+      });
     });
 
     return redeemId;
@@ -643,9 +727,11 @@ const DB = {
     this.verifySlip(orderId, slipImage);
 
     // Supabase Async Write
-    sbQuery(`ptom_orders?id=eq.${encodeURIComponent(orderId)}`, 'PATCH', {
-      slip_url: slipImage,
-      status: 'Verifying'
+    compressBase64Image(slipImage).then(compressed => {
+      sbQuery(`ptom_orders?id=eq.${encodeURIComponent(orderId)}`, 'PATCH', {
+        slip_url: compressed,
+        status: 'Verifying'
+      });
     });
 
     return orders[orderIdx];
@@ -1386,6 +1472,205 @@ const DB = {
     });
 
     return products[idx];
+  },
+
+  addProduct(name, price, category, isRecommended = false, isOutOfStock = false, imageUrl = '') {
+    const products = this.getProducts();
+    const newProduct = {
+      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
+      name: name.trim(),
+      price: parseFloat(price),
+      category: category.trim(),
+      is_recommended: !!isRecommended,
+      is_out_of_stock: !!isOutOfStock,
+      image_url: imageUrl.trim(),
+      created_at: new Date().toISOString()
+    };
+
+    products.push(newProduct);
+    this.saveProducts(products);
+
+    this.logActivity('admin', 'เพิ่มเมนูน้ำปั่นใหม่', `เพิ่มเมนู [${newProduct.name}] ราคา ฿${newProduct.price}`);
+
+    // Supabase POST
+    sbQuery('ptom_products', 'POST', newProduct);
+
+    return newProduct;
+  },
+
+  deleteProduct(productId) {
+    const products = this.getProducts();
+    const idx = products.findIndex(p => p.id === productId);
+    if (idx === -1) throw new Error('ไม่พบเมนูนี้ในระบบ');
+
+    const name = products[idx].name;
+    products.splice(idx, 1);
+    this.saveProducts(products);
+
+    this.logActivity('admin', 'ลบเมนูน้ำปั่น', `ลบเมนู [${name}] ออกจากระบบ`);
+
+    // Supabase DELETE
+    sbQuery(`ptom_products?id=eq.${encodeURIComponent(productId)}`, 'DELETE');
+  },
+
+  updateProduct(productId, name, price, category, isRecommended, isOutOfStock, imageUrl = '') {
+    const products = this.getProducts();
+    const idx = products.findIndex(p => p.id === productId);
+    if (idx === -1) throw new Error('ไม่พบเมนูนี้ในระบบ');
+
+    products[idx].name = name.trim();
+    products[idx].price = parseFloat(price);
+    products[idx].category = category.trim();
+    products[idx].is_recommended = !!isRecommended;
+    products[idx].is_out_of_stock = !!isOutOfStock;
+    products[idx].image_url = imageUrl.trim();
+
+    this.saveProducts(products);
+
+    this.logActivity('admin', 'แก้ไขข้อมูลเมนูน้ำปั่น', `แก้ไขเมนู [${products[idx].name}] ราคา ฿${products[idx].price}`);
+
+    // Supabase PATCH
+    sbQuery(`ptom_products?id=eq.${encodeURIComponent(productId)}`, 'PATCH', {
+      name: products[idx].name,
+      price: products[idx].price,
+      category: products[idx].category,
+      is_recommended: products[idx].is_recommended,
+      is_out_of_stock: products[idx].is_out_of_stock,
+      image_url: products[idx].image_url
+    });
+
+    return products[idx];
+  },
+
+  addCustomer(fullName, username, email, password, phone = '', birthDate = '') {
+    const users = this.getUsers();
+    const exists = users.some(u => u.username === username.toLowerCase().trim() || u.email === email.toLowerCase().trim());
+    if (exists) throw new Error('ชื่อผู้ใช้งานหรืออีเมลนี้ถูกใช้งานไปแล้ว');
+
+    const newUser = {
+      username: username.toLowerCase().trim(),
+      fullName: fullName.trim(),
+      email: email.toLowerCase().trim(),
+      passwordHash: password,
+      points: 0,
+      totalLifetimePoints: 0,
+      phone: phone.trim(),
+      birthDate: birthDate || null,
+      role: 'customer',
+      lineUserId: '',
+      lineNotifyToken: '',
+      createdAt: new Date().toISOString()
+    };
+
+    users.push(newUser);
+    this.saveUsers(users);
+
+    this.logActivity('admin', 'สร้างบัญชีลูกค้าใหม่', `แอดมินสร้างบัญชีสมาชิกให้ @${newUser.username}`);
+
+    // Supabase POST
+    sbQuery('ptom_users', 'POST', mapUserToSupabase(newUser));
+
+    return newUser;
+  },
+
+  deleteUser(username) {
+    let users = this.getUsers();
+    users = users.filter(u => u.username !== username);
+    this.saveUsers(users);
+
+    this.logActivity('admin', 'ลบผู้ใช้', `แอดมินลบบัญชีสมาชิก @${username} สำเร็จ`);
+
+    // Supabase DELETE
+    sbQuery(`ptom_users?username=eq.${encodeURIComponent(username)}`, 'DELETE');
+  },
+
+  updateUserPoints(username, points) {
+    const users = this.getUsers();
+    const idx = users.findIndex(u => u.username === username);
+    if (idx === -1) throw new Error('ไม่พบข้อมูลผู้ใช้งาน');
+
+    const oldPoints = users[idx].points;
+    users[idx].points = points;
+    
+    if (points > oldPoints) {
+      users[idx].totalLifetimePoints = (users[idx].totalLifetimePoints || 0) + (points - oldPoints);
+    }
+    
+    this.saveUsers(users);
+
+    // Supabase PATCH
+    sbQuery(`ptom_users?username=eq.${encodeURIComponent(username)}`, 'PATCH', {
+      points_balance: points,
+      total_lifetime_points: users[idx].totalLifetimePoints
+    });
+  },
+
+  saveScans(scans) {
+    localStorage.setItem('ptom_scans', JSON.stringify(scans));
+    window.dispatchEvent(new Event('storage'));
+  },
+
+  updateScanPoints(scanId, newPointsGained) {
+    const scans = this.getScans();
+    const scanIdx = scans.findIndex(s => s.id === scanId);
+    if (scanIdx === -1) throw new Error('ไม่พบรายการสะสมแต้มนี้');
+
+    const scan = scans[scanIdx];
+    const oldPoints = scan.pointsGained;
+    const diff = newPointsGained - oldPoints;
+
+    scans[scanIdx].pointsGained = newPointsGained;
+    this.saveScans(scans);
+
+    const users = this.getUsers();
+    const userIdx = users.findIndex(u => u.username === scan.username);
+    if (userIdx !== -1) {
+      users[userIdx].points = Math.max(0, users[userIdx].points + diff);
+      if (diff > 0) {
+        users[userIdx].totalLifetimePoints = (users[userIdx].totalLifetimePoints || 0) + diff;
+      }
+      this.saveUsers(users);
+
+      sbQuery(`ptom_users?username=eq.${encodeURIComponent(scan.username)}`, 'PATCH', {
+        points_balance: users[userIdx].points,
+        total_lifetime_points: users[userIdx].totalLifetimePoints
+      });
+    }
+
+    this.logActivity('admin', 'แก้ไขแต้มจากรหัสสะสม', `แก้ไขแต้มรหัสสะสม [${scanId}] ของ @${scan.username} จากเดิม ${oldPoints} เป็น ${newPointsGained} แต้ม`);
+
+    sbQuery(`ptom_scans?id=eq.${encodeURIComponent(scanId)}`, 'PATCH', {
+      pointsgained: newPointsGained
+    });
+
+    return scans[scanIdx];
+  },
+
+  deleteScan(scanId) {
+    const scans = this.getScans();
+    const scanIdx = scans.findIndex(s => s.id === scanId);
+    if (scanIdx === -1) throw new Error('ไม่พบรายการสะสมแต้มนี้');
+
+    const scan = scans[scanIdx];
+    const oldPoints = scan.pointsGained;
+
+    scans.splice(scanIdx, 1);
+    this.saveScans(scans);
+
+    const users = this.getUsers();
+    const userIdx = users.findIndex(u => u.username === scan.username);
+    if (userIdx !== -1) {
+      users[userIdx].points = Math.max(0, users[userIdx].points - oldPoints);
+      this.saveUsers(users);
+
+      sbQuery(`ptom_users?username=eq.${encodeURIComponent(scan.username)}`, 'PATCH', {
+        points_balance: users[userIdx].points
+      });
+    }
+
+    this.logActivity('admin', 'ลบประวัติสะสมแต้ม', `ลบประวัติสะสมแต้มรหัส [${scanId}] ของ @${scan.username} หักคืน ${oldPoints} แต้ม`);
+
+    sbQuery(`ptom_scans?id=eq.${encodeURIComponent(scanId)}`, 'DELETE');
   },
 
   // --- MOCK LINE NOTIFICATION SIMULATOR ---
