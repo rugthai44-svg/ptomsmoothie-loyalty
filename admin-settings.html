@@ -73,6 +73,22 @@
           </form>
         </div>
 
+        <!-- LINE Messaging API Configuration Card -->
+        <div class="glass-card">
+          <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 8px;">💬 ตั้งค่าการแจ้งเตือนไลน์จริง (LINE Bot Notifications)</h3>
+          <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 20px;">ระบุข้อมูล Channel Access Token ของ LINE Messaging API เพื่อส่งข้อความเตือนสถานะไปยังหน้าจอมือถือจริงของลูกค้า</p>
+          
+          <div id="lineSuccessBox" style="color: var(--accent-green); background: rgba(57, 255, 20, 0.1); border: 1px solid var(--accent-green); padding: 10px; border-radius: 8px; margin-bottom: 16px; display: none; font-size: 0.9rem; text-align: center;"></div>
+          
+          <form id="lineSettingsForm">
+            <div class="form-group">
+              <label class="form-label" for="lineTokenInput">LINE Channel Access Token</label>
+              <input class="form-input" type="text" id="lineTokenInput" placeholder="ใส่ Token ของคุณที่นี่ (ขึ้นต้นด้วย eyJ...)">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">บันทึกการตั้งค่าไลน์</button>
+          </form>
+        </div>
+
         <!-- Dangerous zone card -->
         <div class="glass-card" style="border-color: rgba(255, 56, 96, 0.3); box-shadow: 0 0 15px rgba(255, 56, 96, 0.05);">
           <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--accent-red); margin-bottom: 8px;">⚠️ พื้นที่อันตรายมาก (Dangerous System Settings)</h3>
@@ -113,6 +129,9 @@
 
       document.getElementById('adminNameInput').value = admin.fullName;
       document.getElementById('adminEmailInput').value = admin.email;
+
+      // Load LINE Token
+      document.getElementById('lineTokenInput').value = localStorage.getItem('ptom_line_channel_access_token') || '';
     }
 
     initForm();
@@ -160,6 +179,22 @@
         errorBox.textContent = err.message;
         errorBox.style.display = 'block';
       }
+    });
+
+    const lineForm = document.getElementById('lineSettingsForm');
+    const lineSuccessBox = document.getElementById('lineSuccessBox');
+
+    lineForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      lineSuccessBox.style.display = 'none';
+
+      const lineToken = document.getElementById('lineTokenInput').value.trim();
+      localStorage.setItem('ptom_line_channel_access_token', lineToken);
+      
+      lineSuccessBox.textContent = 'บันทึก Channel Access Token สำหรับส่ง LINE แจ้งเตือนจริงสำเร็จ!';
+      lineSuccessBox.style.display = 'block';
+      
+      DB.logActivity('admin', 'ตั้งค่า LINE Token', 'บันทึก/อัปเดต LINE Bot Channel Access Token');
     });
 
     // Wipe database function

@@ -180,6 +180,7 @@
       <li><a href="menu.html" class="nav-link active">เมนูน้ำปั่น</a></li>
       <li><a href="loyalty.html" class="nav-link">สะสมแต้ม</a></li>
       <li><a href="rewards.html" class="nav-link">รางวัลของฉัน</a></li>
+      <li><a href="quests.html" class="nav-link">วงล้อ & เควสต์</a></li>
       <li><a href="profile.html" class="nav-link">โปรไฟล์</a></li>
     </ul>
 
@@ -237,7 +238,19 @@
           <div class="option-pill" data-value="หวาน 0% (ไม่หวานเลย)">หวาน 0%</div>
           <div class="option-pill" data-value="หวาน 25% (หวานน้อยมาก)">หวาน 25%</div>
           <div class="option-pill" data-value="หวาน 50% (หวานน้อย)">หวาน 50%</div>
+          <div class="option-pill" data-value="หวาน 75% (หวานน้อยมาก)">หวาน 75%</div>
           <div class="option-pill active" data-value="หวาน 100% (ปกติ)">หวาน 100% (ปกติ)</div>
+          <div class="option-pill" data-value="หวาน 125% (หวานเจี๊ยบ)">หวาน 125%</div>
+        </div>
+      </div>
+
+      <!-- Base Selection (for drinks) -->
+      <div id="baseSection" style="margin-bottom: 20px;">
+        <label class="form-label">เลือกนม/เบส (Base Option):</label>
+        <div class="option-pill-group" id="baseGroup">
+          <div class="option-pill active" data-value="นมสด" data-price="0">🥛 นมสด (+0฿)</div>
+          <div class="option-pill" data-value="นมโอ๊ต" data-price="10">🌾 นมโอ๊ต (+10฿)</div>
+          <div class="option-pill" data-value="โยเกิร์ต" data-price="10">🍦 โยเกิร์ต (+10฿)</div>
         </div>
       </div>
 
@@ -296,47 +309,8 @@
       <p style="color: var(--text-sub); font-size: 0.85rem; margin-top: 4px;">กรุณาแสกน QR Code เพื่อชำระเงินและอัปโหลดภาพสลิปเพื่อยืนยันออเดอร์สะสมแต้ม</p>
 
       <!-- PromptPay Mock QR Code -->
-      <div style="background: #fff; padding: 12px; border-radius: 12px; display: inline-block; margin: 16px 0 10px; border: 1px solid var(--border-color);">
-        <svg width="140" height="140" viewBox="0 0 100 100" style="display: block; margin: 0 auto;">
-          <rect width="100" height="100" fill="#fff"/>
-          <!-- QR corners -->
-          <rect x="5" y="5" width="25" height="25" fill="#003b66" />
-          <rect x="8" y="8" width="19" height="19" fill="#fff" />
-          <rect x="12" y="12" width="11" height="11" fill="#003b66" />
-          
-          <rect x="70" y="5" width="25" height="25" fill="#003b66" />
-          <rect x="73" y="8" width="19" height="19" fill="#fff" />
-          <rect x="77" y="12" width="11" height="11" fill="#003b66" />
-          
-          <rect x="5" y="70" width="25" height="25" fill="#003b66" />
-          <rect x="8" y="73" width="19" height="19" fill="#fff" />
-          <rect x="12" y="77" width="11" height="11" fill="#003b66" />
-          
-          <!-- Mock QR Data Blocks -->
-          <rect x="40" y="10" width="5" height="15" fill="#111" />
-          <rect x="50" y="5" width="10" height="5" fill="#111" />
-          <rect x="45" y="25" width="15" height="5" fill="#111" />
-          
-          <rect x="10" y="40" width="15" height="5" fill="#111" />
-          <rect x="5" y="50" width="5" height="10" fill="#111" />
-          <rect x="25" y="45" width="5" height="15" fill="#111" />
-          
-          <rect x="40" y="40" width="20" height="20" fill="#003b66" />
-          <rect x="45" y="45" width="10" height="10" fill="#fff" />
-          <text x="50" y="53" font-size="8" font-weight="bold" fill="#003b66" text-anchor="middle">PP</text>
-          
-          <rect x="70" y="40" width="10" height="10" fill="#111" />
-          <rect x="85" y="45" width="10" height="5" fill="#111" />
-          <rect x="75" y="55" width="15" height="10" fill="#111" />
-          
-          <rect x="40" y="70" width="15" height="5" fill="#111" />
-          <rect x="50" y="80" width="10" height="15" fill="#111" />
-          <rect x="45" y="85" width="20" height="5" fill="#111" />
-          
-          <rect x="70" y="70" width="10" height="10" fill="#111" />
-          <rect x="85" y="75" width="5" height="15" fill="#111" />
-          <rect x="75" y="85" width="20" height="10" fill="#111" />
-        </svg>
+      <div style="background: #fff; padding: 12px; border-radius: 12px; display: inline-block; margin: 16px 0 10px; border: 1px solid var(--border-color); text-align: center;">
+        <img id="successPromptPayQR" src="" style="width: 140px; height: 140px; display: block; margin: 0 auto; border: none;">
         <div style="color: #003b66; font-size: 0.72rem; font-weight: bold; margin-top: 4px; font-family: sans-serif;">PromptPay: พี่ต้อม สตรอว์เบอร์รี</div>
       </div>
 
@@ -550,12 +524,17 @@
       bookModalDesc.textContent = selectedItem.desc;
       bookingNotesInput.value = '';
       
-      // Hide or show sweetness group depending on category (snacks don't have sweetness)
+      // Hide or show options sections depending on category (snacks don't have these options)
       const isDrink = selectedItem.category !== 'snacks';
       document.getElementById('sweetnessSection').style.display = isDrink ? 'block' : 'none';
       document.getElementById('toppingSection').style.display = isDrink ? 'block' : 'none';
+      document.getElementById('baseSection').style.display = isDrink ? 'block' : 'none';
 
-      // Reset options
+      // Reset options selection
+      document.querySelectorAll('#baseGroup .option-pill').forEach(el => el.classList.remove('active'));
+      const defBase = document.querySelector('#baseGroup .option-pill[data-value="นมสด"]');
+      if (defBase) defBase.classList.add('active');
+
       document.querySelectorAll('#sweetnessGroup .option-pill').forEach(el => el.classList.remove('active'));
       const defSweet = document.querySelector('#sweetnessGroup .option-pill[data-value="หวาน 100% (ปกติ)"]');
       if (defSweet) defSweet.classList.add('active');
@@ -578,7 +557,6 @@
     function toggleCustomTime() {
       if (pickupTimeSelect.value === 'custom') {
         customTimeInput.style.display = 'block';
-        // set default to 15 minutes from now
         const now = new Date();
         now.setMinutes(now.getMinutes() + 15);
         const hours = String(now.getHours()).padStart(2, '0');
@@ -610,9 +588,13 @@
       if (!selectedItem) return;
       let total = selectedItem.price;
 
-      // Add toppings cost (only for drinks)
       if (selectedItem.category !== 'snacks') {
+        // Toppings
         document.querySelectorAll('#toppingsGroup .option-pill.active').forEach(el => {
+          total += parseInt(el.getAttribute('data-price'), 10) || 0;
+        });
+        // Base Option
+        document.querySelectorAll('#baseGroup .option-pill.active').forEach(el => {
           total += parseInt(el.getAttribute('data-price'), 10) || 0;
         });
       }
@@ -630,6 +612,7 @@
 
       try {
         const sweetness = selectedItem.category !== 'snacks' ? document.querySelector('#sweetnessGroup .option-pill.active').getAttribute('data-value') : '';
+        const baseOpt = selectedItem.category !== 'snacks' ? document.querySelector('#baseGroup .option-pill.active').getAttribute('data-value') : '';
         const toppings = [];
         if (selectedItem.category !== 'snacks') {
           document.querySelectorAll('#toppingsGroup .option-pill.active').forEach(el => {
@@ -648,12 +631,15 @@
 
         // Drink summary string
         let optionsStr = sweetness;
+        if (baseOpt) {
+          optionsStr += `, เบส: ${baseOpt}`;
+        }
         if (toppings.length > 0) {
           optionsStr += ` (ท็อปปิ้ง: ${toppings.join(', ')})`;
         }
         const fullItemDetails = `${selectedItem.title}${optionsStr ? ' [' + optionsStr + ']' : ''}`;
 
-        // Submit Booking (Price is calculated but paid at shop)
+        // Submit Booking (Price is calculated)
         const order = DB.submitOrder(
           currentUser.username, 
           [fullItemDetails], 
@@ -662,19 +648,6 @@
           pickupTime, 
           notes
         );
-
-        // Play synthetic beep
-        try {
-          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.connect(gain); gain.connect(audioCtx.destination);
-          osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-          gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-          osc.start();
-          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-          osc.stop(audioCtx.currentTime + 0.2);
-        } catch(e){}
 
         // Close booking modal and show success modal
         closeBookingModal();
@@ -718,15 +691,23 @@
       }
     });
 
-    btnSubmitOrderSlip.addEventListener('click', () => {
+    btnSubmitOrderSlip.addEventListener('click', async () => {
       if (!uploadedOrderPhotoData || !currentSuccessOrderId) return;
       btnSubmitOrderSlip.disabled = true;
+      const originalText = btnSubmitOrderSlip.textContent;
+      btnSubmitOrderSlip.textContent = '🔍 กำลังส่งตรวจสอบสลิปอัตโนมัติผ่าน EasySlip API...';
+      
       try {
+        // Upload slip
         DB.uploadOrderSlip(currentSuccessOrderId, uploadedOrderPhotoData);
-        alert('อัปโหลดสลิปสำเร็จ! กรุณารอแอดมินร้านพี่ต้อมตรวจสอบความถูกต้องเพื่ออนุมัติคิวและแต้มสะสม');
+        // Wait for automated slip verification mock
+        await DB.verifySlip(currentSuccessOrderId, uploadedOrderPhotoData);
+        
+        alert('✅ ระบบ EasySlip ยืนยันสลิปถูกต้องแล้ว!\nยอดเงินชำระครบถ้วน แต้มได้รับการอนุมัติและเปลี่ยนสถานะเป็น [กำลังเตรียมเครื่องดื่ม] สำเร็จ!');
         closeSuccessModal();
       } catch (err) {
-        alert('เกิดข้อผิดพลาด: ' + err.message);
+        alert('เกิดข้อผิดพลาดในการยืนยันสลิป: ' + err.message);
+        btnSubmitOrderSlip.textContent = originalText;
         btnSubmitOrderSlip.disabled = false;
       }
     });
@@ -737,6 +718,9 @@
       successItemsText.textContent = itemTitle;
       successTimeText.textContent = order.pickupTime;
       successPriceText.textContent = `${order.totalPrice.toFixed(2)} ฿`;
+      
+      // Load dynamic PromptPay QR code
+      document.getElementById('successPromptPayQR').src = DB.getPromptPayQR(order.totalPrice);
       
       // Reset slip upload inputs
       orderSlipFileInput.value = '';

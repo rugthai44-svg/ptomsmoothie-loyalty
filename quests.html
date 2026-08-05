@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>วงล้อ & เควสต์ - ร้านน้ำปั่นพี่ต้อม</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Wheel & Quests Custom CSS Styles */
+    .quests-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .quests-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Lucky Spin Wheel Container */
+    .wheel-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      margin-top: 15px;
+    }
+
+    .wheel-outer {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      border: 8px solid var(--accent-cyan);
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.4), inset 0 0 15px rgba(0, 240, 255, 0.2);
+      overflow: hidden;
+      background: var(--bg-tertiary);
+    }
+
+    .wheel-canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      transition: transform 4s cubic-bezier(0.15, 0.9, 0.25, 1);
+    }
+
+    .wheel-pointer {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-top: 30px solid var(--accent-red);
+      filter: drop-shadow(0 0 8px var(--accent-red));
+      z-index: 10;
+    }
+
+    .wheel-center-pin {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 50px;
+      height: 50px;
+      background: var(--bg-primary);
+      border: 3px solid var(--accent-cyan);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.9rem;
+      cursor: pointer;
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+      z-index: 11;
+      color: var(--accent-cyan);
+      user-select: none;
+    }
+
+    .wheel-center-pin:hover {
+      box-shadow: 0 0 20px var(--accent-cyan);
+      color: #fff;
+    }
+
+    /* Streak Day Circles */
+    .streak-container {
+      display: flex;
+      justify-content: space-between;
+      margin: 20px 0;
+      gap: 6px;
+    }
+
+    .streak-day {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      color: var(--text-sub);
+      transition: all 0.3s ease;
+      position: relative;
+      flex: 1;
+      max-width: 44px;
+      min-width: 30px;
+    }
+
+    .streak-day.completed {
+      background: rgba(57, 255, 20, 0.15);
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+      box-shadow: 0 0 8px rgba(57, 255, 20, 0.3);
+    }
+
+    .streak-day.active {
+      background: rgba(0, 240, 255, 0.15);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+      box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+    }
+
+    .streak-day .check {
+      font-size: 0.8rem;
+      margin-top: 2px;
+    }
+
+    /* Quests List */
+    .quest-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      margin-bottom: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .quest-item:hover {
+      background: rgba(0, 240, 255, 0.02);
+      border-color: rgba(0, 240, 255, 0.2);
+    }
+
+    .quest-info {
+      flex: 1;
+      margin-right: 16px;
+    }
+
+    .quest-title {
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+
+    .quest-desc {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      margin-bottom: 8px;
+    }
+
+    .quest-reward {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background: var(--bg-primary);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 8px var(--accent-cyan);
+      transition: width 0.4s ease;
+    }
+
+    /* Badges list */
+    .badges-container {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 480px) {
+      .badges-container {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .badge-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      transition: all 0.3s ease;
+      opacity: 0.4;
+      filter: grayscale(1);
+    }
+
+    .badge-card.unlocked {
+      opacity: 1;
+      filter: grayscale(0);
+      border-color: rgba(57, 255, 20, 0.3);
+      box-shadow: 0 0 10px rgba(57, 255, 20, 0.1);
+    }
+
+    .badge-icon {
+      font-size: 2.2rem;
+      margin-bottom: 8px;
+    }
+
+    .badge-name {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Header / Navigation -->
+  <nav class="navbar">
+    <a href="home.html" class="nav-logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <path d="M12 2c1.2 0 2.3.4 3.2 1.2l-1.4 1.4C13.2 4.2 12.6 4 12 4c-3.9 0-7 3.1-7 7 0 2.5 1.3 4.7 3.2 6H5.4c-1.9-1.3-3.2-3.5-3.2-6 0-5 4-9 9-9zm0 18c-3.9 0-7-3.1-7-7H3c0 5 4 9 9 9s9-4 9-9h-2c0 3.9-3.1 7-7 7zm5.2-13.8l-1.4 1.4c.8.9 1.2 2 1.2 3.2v5.4c0 1.9-1.3 3.5-3.2 4.8v2.1c3.1-1.3 5.2-4.1 5.2-7.5V11.4c0-1.8-.7-3.5-1.8-4.8zM12 7c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4z"/>
+      </svg>
+      <span>P'TOM SMOOTHIE</span>
+    </a>
+    
+    <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+
+    <ul class="nav-links" id="navLinks">
+      <li><a href="home.html" class="nav-link">หน้าแรก</a></li>
+      <li><a href="menu.html" class="nav-link">เมนูน้ำปั่น</a></li>
+      <li><a href="loyalty.html" class="nav-link">สะสมแต้ม</a></li>
+      <li><a href="rewards.html" class="nav-link">รางวัลของฉัน</a></li>
+      <li><a href="quests.html" class="nav-link active">วงล้อ & เควสต์</a></li>
+      <li><a href="profile.html" class="nav-link">โปรไฟล์</a></li>
+    </ul>
+
+    <div class="nav-user-info">
+      <div class="user-badge">
+        <span id="navRankEmoji">🥉</span>
+        <span id="navUserPoints" class="user-pts">0 แต้ม</span>
+      </div>
+      <button class="btn btn-secondary" onclick="logoutUser()" style="padding: 6px 12px; font-size: 0.85rem;">ออกจากระบบ</button>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="main-grid" style="margin-top: 24px; padding: 0 24px; max-width: 1200px; margin-left: auto; margin-right: auto;">
+    
+    <h1 style="margin-bottom: 24px;" class="neon-text-cyan">🎯 กิจกรรมและเควสต์นำโชค</h1>
+
+    <div id="errorBox" style="color: var(--accent-red); background: rgba(255, 56, 96, 0.1); border: 1px solid var(--accent-red); padding: 12px; border-radius: 8px; margin-bottom: 20px; display: none; text-align: center;"></div>
+    <div id="successBox" style="color: var(--accent-green); background: rgba(57, 255, 20, 0.1); border: 1px solid var(--accent-green); padding: 12px; border-radius: 8px; margin-bottom: 20px; display: none; text-align: center;"></div>
+
+    <div class="quests-grid">
+      <!-- Left Column: Daily Check-in & Lucky Spin -->
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- Daily Check-in -->
+        <div class="glass-card">
+          <h2 class="neon-text-green" style="font-size: 1.25rem; display: flex; align-items: center; gap: 8px;">📅 เช็คอินประจำวัน (Daily Check-in)</h2>
+          <p style="color: var(--text-sub); font-size: 0.85rem; margin-top: 4px;">เช็คอินครบ 7 วันสะสมเพื่อรับแต้มพิเศษโบนัส!</p>
+          
+          <div class="streak-container" id="streakContainer">
+            <!-- Day circles injected dynamically -->
+          </div>
+
+          <button id="checkinBtn" class="btn btn-success" style="width: 100%; font-size: 1.05rem;">
+            📌 เช็คอินวันนี้ (+2 แต้ม)
+          </button>
+        </div>
+
+        <!-- Lucky Spin -->
+        <div class="glass-card">
+          <h2 class="neon-text-cyan" style="font-size: 1.25rem;">🎡 วงล้อสุ่มแต้มและส่วนลด (Lucky Spin)</h2>
+          <p style="color: var(--text-sub); font-size: 0.85rem; margin-top: 4px;">สุ่มรับแต้มหรือคูปองท็อปปิ้งฟรี (หมุนได้วันละ 1 ครั้ง)</p>
+          
+          <div class="wheel-container">
+            <div class="wheel-pointer"></div>
+            <div class="wheel-outer">
+              <canvas id="wheelCanvas" class="wheel-canvas" width="500" height="500"></canvas>
+            </div>
+            <div class="wheel-center-pin" id="spinBtn">SPIN</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Quests List & Badge Accomplishments -->
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- Quests -->
+        <div class="glass-card">
+          <h2 class="neon-text-cyan" style="font-size: 1.25rem; margin-bottom: 16px;">🚀 ภารกิจสะสมแต้ม</h2>
+          <div id="questsList">
+            <!-- Quests injected here -->
+          </div>
+        </div>
+
+        <!-- Badges -->
+        <div class="glass-card">
+          <h2 class="neon-text-green" style="font-size: 1.25rem;">🏆 เหรียญตราเกียรติยศ (Badges)</h2>
+          <p style="color: var(--text-sub); font-size: 0.85rem; margin-top: 4px;">ความสำเร็จตามสไตล์การดื่มน้ำปั่นของคุณ</p>
+          
+          <div class="badges-container" id="badgesContainer">
+            <!-- Badges injected here -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script src="db.js?v=2"></script>
+  <script>
+    let currentUser = null;
+
+    // Check if user is logged in
+    function checkLogin() {
+      currentUser = DB.getCurrentUser();
+      if (!currentUser) {
+        window.location.href = 'login.html';
+        return;
+      }
+      // Set nav rank & points
+      document.getElementById('navUserPoints').textContent = `${currentUser.points} แต้ม`;
+      const rank = DB.getRank(currentUser.points);
+      document.getElementById('navRankEmoji').textContent = rank.logo;
+    }
+
+    function logoutUser() {
+      DB.logout();
+      window.location.href = 'login.html';
+    }
+
+    // Toggle mobile menu
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const navLinks = document.getElementById('navLinks');
+    mobileMenuBtn.addEventListener('click', () => {
+      navLinks.classList.toggle('active');
+    });
+
+    // --- DAILY CHECK-IN CONTROLLER ---
+    function renderCheckin() {
+      const streakKey = `ptom_streak_${currentUser.username}`;
+      const lastCheckinKey = `ptom_last_checkin_${currentUser.username}`;
+      
+      const streak = parseInt(localStorage.getItem(streakKey)) || 0;
+      const lastCheckinStr = localStorage.getItem(lastCheckinKey);
+      
+      let alreadyCheckedToday = false;
+      if (lastCheckinStr) {
+        const lastCheckin = new Date(lastCheckinStr);
+        const now = new Date();
+        if (now.toDateString() === lastCheckin.toDateString()) {
+          alreadyCheckedToday = true;
+        }
+      }
+
+      const checkinBtn = document.getElementById('checkinBtn');
+      if (alreadyCheckedToday) {
+        checkinBtn.textContent = '✅ เช็คอินเรียบร้อยแล้ววันนี้';
+        checkinBtn.disabled = true;
+        checkinBtn.style.opacity = '0.6';
+        checkinBtn.style.cursor = 'not-allowed';
+      } else {
+        checkinBtn.textContent = streak === 6 ? '🔥 โบนัสเช็คอินวันที่ 7 (+7 แต้ม)' : `📌 เช็คอินวันนี้ (วันที่ ${streak + 1}/7)`;
+        checkinBtn.disabled = false;
+        checkinBtn.style.opacity = '1';
+        checkinBtn.style.cursor = 'pointer';
+      }
+
+      // Render days
+      const streakContainer = document.getElementById('streakContainer');
+      streakContainer.innerHTML = '';
+      
+      for (let i = 1; i <= 7; i++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'streak-day';
+        
+        let label = `D${i}`;
+        if (i === 7) label = '🎁';
+        
+        dayDiv.innerHTML = `<span>${label}</span>`;
+        
+        if (i <= streak) {
+          dayDiv.classList.add('completed');
+          dayDiv.innerHTML += '<span class="check">✔️</span>';
+        } else if (i === streak + 1 && !alreadyCheckedToday) {
+          dayDiv.classList.add('active');
+        }
+        
+        streakContainer.appendChild(dayDiv);
+      }
+    }
+
+    document.getElementById('checkinBtn').addEventListener('click', () => {
+      const errorBox = document.getElementById('errorBox');
+      const successBox = document.getElementById('successBox');
+      errorBox.style.display = 'none';
+      successBox.style.display = 'none';
+
+      try {
+        const res = DB.dailyCheckin(currentUser.username);
+        successBox.textContent = res.message;
+        successBox.style.display = 'block';
+        checkLogin(); // refresh points
+        renderCheckin();
+        renderQuests();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+
+
+    // --- LUCKY SPIN WHEEL CONTROLLER ---
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    const prizes = [
+      { label: '+1 คะแนน', color: '#121e33' },
+      { label: '+3 คะแนน', color: '#00f0ff22' },
+      { label: '+5 คะแนน', color: '#121e33' },
+      { label: 'ฟรีท็อปปิ้ง', color: '#39ff1422' },
+      { label: 'แจ็กพอต 10!', color: '#ff386055' },
+      { label: 'ขอบคุณค่ะ', color: '#060b13' }
+    ];
+
+    function drawWheel() {
+      const segments = prizes.length;
+      const arc = Math.PI * 2 / segments;
+      const radius = canvas.width / 2;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#00f0ff';
+      ctx.lineWidth = 4;
+
+      for (let i = 0; i < segments; i++) {
+        const angle = i * arc;
+        ctx.fillStyle = prizes[i].color;
+        
+        ctx.beginPath();
+        ctx.arc(radius, radius, radius - 8, angle, angle + arc, false);
+        ctx.lineTo(radius, radius);
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw Text
+        ctx.save();
+        ctx.fillStyle = '#fff';
+        ctx.translate(radius, radius);
+        ctx.rotate(angle + arc / 2);
+        ctx.textAlign = 'right';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.fillText(prizes[i].label, radius - 30, 8);
+        ctx.restore();
+      }
+    }
+
+    let isSpinning = false;
+    document.getElementById('spinBtn').addEventListener('click', () => {
+      if (isSpinning) return;
+
+      const errorBox = document.getElementById('errorBox');
+      const successBox = document.getElementById('successBox');
+      errorBox.style.display = 'none';
+      successBox.style.display = 'none';
+
+      // Check if spun today before starting transition
+      const lastSpinKey = `ptom_last_spin_${currentUser.username}`;
+      const lastSpinStr = localStorage.getItem(lastSpinKey);
+      if (lastSpinStr) {
+        const lastSpin = new Date(lastSpinStr);
+        const now = new Date();
+        if (now.toDateString() === lastSpin.toDateString()) {
+          errorBox.textContent = 'วันนี้คุณหมุนวงล้อสุ่มรางวัลไปแล้ว สิทธิ์สุ่มจะรีเซ็ตใหม่ในวันพรุ่งนี้ครับ!';
+          errorBox.style.display = 'block';
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+      }
+
+      isSpinning = true;
+      let prizeResult = null;
+      try {
+        prizeResult = DB.luckySpin(currentUser.username);
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.style.display = 'block';
+        isSpinning = false;
+        return;
+      }
+
+      // Calculate angle of selected prize segment
+      // Prizes: segmented D0: +1, D1: +3, D2: +5, D3: topping, D4: jackpot, D5: lose
+      // Index mapping of prize returned:
+      // prize label mapping in prizes array:
+      // index 0: +1 segment, 1: +3, 2: +5, 3: topping, 4: jackpot, 5: lose
+      let segmentIndex = 5; // Default lose
+      if (prizeResult.label.includes('+1')) segmentIndex = 0;
+      else if (prizeResult.label.includes('+3')) segmentIndex = 1;
+      else if (prizeResult.label.includes('+5')) segmentIndex = 2;
+      else if (prizeResult.label.includes('ท็อปปิ้ง')) segmentIndex = 3;
+      else if (prizeResult.label.includes('10')) segmentIndex = 4;
+      else segmentIndex = 5;
+
+      const segments = prizes.length;
+      const segmentAngle = 360 / segments;
+      // Angle to point is top (270 degrees). Wheel turns clockwise.
+      // Landing in center of segment:
+      const targetAngle = 270 - (segmentIndex * segmentAngle + segmentAngle / 2);
+      const rotations = 5; // number of full spins
+      const finalDegree = (rotations * 360) + targetAngle;
+
+      canvas.style.transform = `rotate(${finalDegree}deg)`;
+
+      // Handle complete spin animation
+      setTimeout(() => {
+        isSpinning = false;
+        successBox.textContent = `🎉 หมุนวงล้อนำโชคสำเร็จ! รางวัลของคุณ: ${prizeResult.label}`;
+        successBox.style.display = 'block';
+        
+        checkLogin(); // refresh points UI
+        renderQuests();
+        renderBadges();
+      }, 4000);
+    });
+
+    // --- QUESTS LIST RENDERING ---
+    function renderQuests() {
+      const quests = DB.getUserQuests(currentUser.username);
+      const container = document.getElementById('questsList');
+      container.innerHTML = '';
+
+      quests.forEach(q => {
+        const item = document.createElement('div');
+        item.className = 'quest-item';
+        
+        const pct = (q.progress / q.target) * 100;
+        
+        item.innerHTML = `
+          <div class="quest-info">
+            <div class="quest-title">${q.title} <span style="font-size: 0.8rem; color: var(--accent-cyan); font-weight: normal;">(${q.progress}/${q.target})</span></div>
+            <div class="quest-desc">${q.desc}</div>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span class="quest-reward">🎁 +${q.points} แต้ม</span>
+              <span style="font-size: 0.75rem; color: var(--text-sub);">${q.isCompleted ? 'เสร็จสิ้น ✅' : 'กำลังดำเนินการ'}</span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // --- BADGES RENDER ---
+    function renderBadges() {
+      const badges = DB.getUserBadges(currentUser.username);
+      const container = document.getElementById('badgesContainer');
+      container.innerHTML = '';
+
+      badges.forEach(b => {
+        const card = document.createElement('div');
+        card.className = `badge-card ${b.isUnlocked ? 'unlocked' : ''}`;
+        card.title = b.desc;
+        card.innerHTML = `
+          <div class="badge-icon">${b.icon}</div>
+          <div class="badge-name">${b.title}</div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Initialize all
+    window.addEventListener('load', () => {
+      checkLogin();
+      renderCheckin();
+      drawWheel();
+      renderQuests();
+      renderBadges();
+    });
+  </script>
+</body>
+
+</html>

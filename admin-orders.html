@@ -132,9 +132,34 @@
       window.location.href = 'admin-login.html';
     }
 
+    let lastOrderCount = -1;
+
+    function triggerVisualAlert() {
+      const main = document.querySelector('main');
+      if (!main) return;
+      let count = 0;
+      const interval = setInterval(() => {
+        main.style.background = count % 2 === 0 ? 'rgba(255, 56, 96, 0.08)' : 'var(--glass-bg)';
+        main.style.borderColor = count % 2 === 0 ? 'var(--accent-red)' : 'var(--border-color)';
+        count++;
+        if (count >= 10) {
+          clearInterval(interval);
+          main.style.background = 'var(--glass-bg)';
+          main.style.borderColor = 'var(--border-color)';
+        }
+      }, 250);
+    }
+
     // Load and render orders table
     function loadOrders() {
       const orders = DB.getOrders();
+      
+      if (lastOrderCount !== -1 && orders.length > lastOrderCount) {
+        DB.playAlertSound();
+        triggerVisualAlert();
+      }
+      lastOrderCount = orders.length;
+
       const tbody = document.getElementById('ordersTableBody');
       const noOrdersMsg = document.getElementById('noOrdersMsg');
       const queueCountText = document.getElementById('ordersQueueCount');

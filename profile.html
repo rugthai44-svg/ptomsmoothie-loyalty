@@ -39,6 +39,7 @@
       <li><a href="menu.html" class="nav-link">เมนูน้ำปั่น</a></li>
       <li><a href="loyalty.html" class="nav-link">สะสมแต้ม</a></li>
       <li><a href="rewards.html" class="nav-link">รางวัลของฉัน</a></li>
+      <li><a href="quests.html" class="nav-link">วงล้อ & เควสต์</a></li>
       <li><a href="profile.html" class="nav-link active">โปรไฟล์</a></li>
     </ul>
 
@@ -78,6 +79,28 @@
           <div class="form-group">
             <label class="form-label" for="emailInput">อีเมล</label>
             <input class="form-input" type="email" id="emailInput" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="phoneInput">เบอร์โทรศัพท์</label>
+            <input class="form-input" type="tel" id="phoneInput" placeholder="เช่น 0812345678">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="birthDateInput">วันเกิด</label>
+            <input class="form-input" type="date" id="birthDateInput">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="lineUserIdInput">LINE User ID (สำหรับแจ้งเตือนสถานะน้ำปั่น)</label>
+            <input class="form-input" type="text" id="lineUserIdInput" placeholder="ขึ้นต้นด้วย U ตามด้วยตัวเลขและตัวอักษร เช่น U123456...">
+            <small style="color: var(--text-sub); display: block; margin-top: 4px; font-size: 0.72rem;">* นี่คือ <strong>LINE User ID (ความยาว 33 หลัก)</strong> ของบอต ไม่ใช่ LINE ID ทั่วไป ลูกค้าสามารถค้นหาได้โดยสแกนเพิ่มเพื่อน LINE Bot ของทางร้าน แล้วบอตจะส่งข้อความรหัสนี้ให้ท่านคัดลอกมาใส่</small>
+          </div>
+
+          <div class="form-group" style="margin-top: 16px;">
+            <label class="form-label" for="lineNotifyTokenInput">LINE Notify Token (รับแจ้งเตือนตรงเข้า LINE ส่วนตัวฟรี - แนะนำสำหรับผู้เริ่มต้น)</label>
+            <input class="form-input" type="text" id="lineNotifyTokenInput" placeholder="กรอก Token ของคุณ เช่น aBcDe12345...">
+            <small style="color: var(--text-sub); display: block; margin-top: 4px; font-size: 0.72rem;">* <strong>วิธีรับแจ้งเตือนส่วนตัวทันที</strong>:<br>1. เข้าเว็บ <a href="https://notify-bot.line.me/my/" target="_blank" style="color: var(--accent-cyan); font-weight: bold; text-decoration: underline;">notify-bot.line.me/my/</a> แล้วเข้าสู่ระบบไลน์ของคุณ<br>2. กดปุ่ม <strong>"ออก Token" (Generate Token)</strong> ที่ด้านล่าง<br>3. ตั้งชื่อแจ้งเตือน (เช่น พี่ต้อมสมูทตี้) และเลือกแชตห้องแรก <strong>"ส่งข้อความตัวต่อตัวจาก LINE Notify"</strong><br>4. กดออก Token แล้วนำรหัสที่ได้มาวางในช่องด้านบนนี้<br>5. <strong>สำคัญ:</strong> เพิ่มเพื่อนกับบัญชีทางการที่ชื่อ <strong>LINE Notify</strong> ในแอปไลน์ของคุณด้วย</small>
           </div>
 
           <div style="border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 20px;">
@@ -122,6 +145,14 @@
             <p style="font-size: 0.75rem; color: var(--text-sub);">แลกแก้วฟรีไปแล้ว</p>
             <p style="font-size: 1.5rem; font-weight: 700; color: var(--text-main);" id="statsRedeemsText">0 แก้ว</p>
           </div>
+        </div>
+      </div>
+
+      <!-- Badges Section in Profile -->
+      <div class="glass-card" style="margin-bottom: 24px;">
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">🏆 เหรียญตราเกียรติยศ (Badges)</h3>
+        <div id="badgesContainer" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center;">
+          <!-- Badges injected dynamically -->
         </div>
       </div>
 
@@ -188,6 +219,10 @@
       document.getElementById('usernameInput').value = currentUser.username;
       document.getElementById('fullNameInput').value = currentUser.fullName;
       document.getElementById('emailInput').value = currentUser.email;
+      document.getElementById('phoneInput').value = currentUser.phone || '';
+      document.getElementById('birthDateInput').value = currentUser.birthDate || '';
+      document.getElementById('lineUserIdInput').value = currentUser.lineUserId || '';
+      document.getElementById('lineNotifyTokenInput').value = currentUser.lineNotifyToken || '';
 
       // Stats boxes
       document.getElementById('statsPointsText').textContent = pts;
@@ -200,13 +235,34 @@
       const userRedeems = DB.getRedemptions(currentUser.username);
       document.getElementById('statsRedeemsText').textContent = `${userRedeems.length} แก้ว`;
 
-      // Render activity logs
+      // Render activity logs & badges
+      renderProfileBadges();
       renderUserActivityLogs();
+    }
+
+    function renderProfileBadges() {
+      const badges = DB.getUserBadges(currentUser.username);
+      const container = document.getElementById('badgesContainer');
+      container.innerHTML = '';
+      
+      badges.forEach(b => {
+        const div = document.createElement('div');
+        div.style.padding = '8px';
+        div.style.borderRadius = '8px';
+        div.style.background = b.isUnlocked ? 'rgba(57, 255, 20, 0.05)' : 'rgba(255,255,255,0.01)';
+        div.style.border = b.isUnlocked ? '1px solid var(--accent-green)' : '1px solid var(--border-color)';
+        div.style.opacity = b.isUnlocked ? '1' : '0.25';
+        div.title = b.desc;
+        div.innerHTML = `
+          <div style="font-size: 1.8rem;">${b.icon}</div>
+          <div style="font-size: 0.68rem; font-weight: bold; margin-top: 4px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${b.title}</div>
+        `;
+        container.appendChild(div);
+      });
     }
 
     function renderUserActivityLogs() {
       const allLogs = DB.getActivityLogs();
-      // Filter logs for this user only
       const userLogs = allLogs.filter(l => l.username === currentUser.username);
 
       const tableBody = document.getElementById('logsTableBody');
@@ -249,6 +305,10 @@
 
       const fullName = document.getElementById('fullNameInput').value;
       const email = document.getElementById('emailInput').value;
+      const phone = document.getElementById('phoneInput').value;
+      const birthDate = document.getElementById('birthDateInput').value;
+      const lineUserId = document.getElementById('lineUserIdInput').value;
+      const lineNotifyToken = document.getElementById('lineNotifyTokenInput').value;
       const pass = document.getElementById('passwordInput').value;
       const confirmPass = document.getElementById('confirmPasswordInput').value;
 
@@ -268,7 +328,7 @@
       }
 
       try {
-        DB.updateCurrentUserProfile(fullName, email, newPass);
+        DB.updateCurrentUserProfile(fullName, email, newPass, phone, birthDate, lineUserId, lineNotifyToken);
         
         successBox.textContent = 'บันทึกแก้ไขข้อมูลส่วนตัวของคุณสำเร็จเสร็จเรียบร้อย!';
         successBox.style.display = 'block';

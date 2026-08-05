@@ -80,6 +80,7 @@
       <li><a href="menu.html" class="nav-link">เมนูน้ำปั่น</a></li>
       <li><a href="loyalty.html" class="nav-link active">สะสมแต้ม</a></li>
       <li><a href="rewards.html" class="nav-link">รางวัลของฉัน</a></li>
+      <li><a href="quests.html" class="nav-link">วงล้อ & เควสต์</a></li>
       <li><a href="profile.html" class="nav-link">โปรไฟล์</a></li>
     </ul>
 
@@ -127,6 +128,22 @@
           </div>
           <p id="nextRankNotice"
             style="font-size: 0.8rem; color: var(--text-sub); margin-top: 8px; text-align: center;"></p>
+        </div>
+      </section>
+
+      <!-- Milestone Coupons Section -->
+      <section class="glass-card" style="margin-bottom: 24px; padding: 24px;">
+        <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+          <span>🎟️ คูปองรางวัลสะสมของฉัน (Milestone Coupons)</span>
+          <span style="font-size: 0.85rem; color: var(--accent-cyan); font-weight: 500;" id="couponsCount">0 ใบ</span>
+        </h3>
+        
+        <div id="couponsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">
+          <!-- Coupons render dynamically -->
+        </div>
+
+        <div id="noCouponsMsg" style="text-align: center; color: var(--text-sub); padding: 20px 0; display: block; font-size: 0.9rem;">
+          ยังไม่มีคูปองที่ปลดล็อค สะสมแต้มต่อเพื่อรับรางวัล Milestone ระหว่างทาง!
         </div>
       </section>
 
@@ -268,6 +285,87 @@
         document.getElementById('nextRankNotice').textContent = `อีกเพียง ${nextThreshold - pts} แต้ม เพื่อเลื่อนขึ้นแรงค์ระดับถัดไป`;
       }
     }
+
+    // Render Milestone Coupons
+    function renderCoupons() {
+      const coupons = DB.getUserCoupons(currentUser.username);
+      const container = document.getElementById('couponsContainer');
+      const noCouponsMsg = document.getElementById('noCouponsMsg');
+      const couponsCount = document.getElementById('couponsCount');
+
+      container.innerHTML = '';
+      couponsCount.textContent = `${coupons.length} ใบ`;
+
+      if (coupons.length === 0) {
+        noCouponsMsg.style.display = 'block';
+        return;
+      }
+      noCouponsMsg.style.display = 'none';
+
+      coupons.forEach(c => {
+        const card = document.createElement('div');
+        card.style.background = c.isUsed ? 'rgba(255,255,255,0.01)' : 'rgba(0, 240, 255, 0.04)';
+        card.style.border = c.isUsed ? '1px solid var(--border-color)' : '1px solid var(--accent-cyan)';
+        card.style.borderRadius = '12px';
+        card.style.padding = '16px';
+        card.style.display = 'flex';
+        card.style.flexDirection = 'column';
+        card.style.justifyContent = 'space-between';
+        card.style.opacity = c.isUsed ? '0.5' : '1';
+        card.style.marginBottom = '10px';
+
+        const isExpired = new Date() > new Date(c.expiresAt);
+        const expiresDate = new Date(c.expiresAt);
+        
+        let footerHTML = '';
+        if (c.isUsed) {
+          footerHTML = `<span style="color: var(--text-sub); font-size: 0.8rem; font-weight: bold;">ใช้งานแล้ว ✅</span>`;
+        } else if (isExpired) {
+          footerHTML = `<span style="color: var(--accent-red); font-size: 0.8rem; font-weight: bold;">หมดอายุ ❌</span>`;
+        } else {
+          let countdownText = '';
+          if (c.couponType === 'discount_10') {
+            const diffMs = expiresDate.getTime() - new Date().getTime();
+            const hours = Math.floor(diffMs / 3600000);
+            const mins = Math.floor((diffMs % 3600000) / 60000);
+            countdownText = ` (เหลือเวลา ${hours} ชม. ${mins} น.)`;
+          } else {
+            countdownText = ` (หมดอายุ ${expiresDate.toLocaleDateString('th-TH')})`;
+          }
+          
+          footerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <span style="color: var(--accent-green); font-size: 0.75rem; font-weight: 500;">ใช้ได้${countdownText}</span>
+              <button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.8rem; width: 100%;" onclick="useCoupon('${c.id}')">
+                🎟️ ใช้คูปองหน้าร้าน
+              </button>
+            </div>
+          `;
+        }
+
+        card.innerHTML = `
+          <div>
+            <h4 style="font-weight: 700; color: #fff; margin-bottom: 4px; font-size: 0.95rem;">${c.title}</h4>
+            <p style="font-size: 0.78rem; color: var(--text-sub); margin-bottom: 12px;">รหัสคูปอง: <strong style="font-family: monospace; color: var(--accent-cyan);">${c.id}</strong></p>
+          </div>
+          ${footerHTML}
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function useCoupon(couponId) {
+      if (!confirm('ยืนยันที่จะแสดงคูปองต่อพนักงานหน้าร้านเพื่อรับสิทธิ์คูปองใช่หรือไม่?')) return;
+      try {
+        DB.useCoupon(couponId);
+        alert('ใช้คูปองสำเร็จ! แสดงหน้าจอนี้แก่พนักงานของร้านครับ');
+        renderUserProfile();
+        renderCoupons();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
 
     // Render points logs from scans table
     function renderPointsStatement() {
@@ -589,12 +687,14 @@
 
     // Initial load
     renderUserProfile();
+    renderCoupons();
     renderPointsStatement();
     renderMyBookings();
 
     // Sync state changes across tabs
     window.addEventListener('storage', () => {
       renderUserProfile();
+      renderCoupons();
       renderPointsStatement();
       renderMyBookings();
     });
