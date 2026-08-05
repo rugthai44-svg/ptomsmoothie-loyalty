@@ -52,6 +52,7 @@ function mapUserToLocal(u) {
     passwordHash: u.passwordhash !== undefined ? u.passwordhash : u.passwordHash,
     points: u.points_balance !== undefined ? u.points_balance : (u.points !== undefined ? u.points : 0),
     totalLifetimePoints: u.total_lifetime_points !== undefined ? u.total_lifetime_points : 0,
+    exp: u.exp !== undefined ? u.exp : 0,
     phone: u.phone || '',
     birthDate: u.birth_date || '',
     role: u.role || 'customer',
@@ -70,6 +71,7 @@ function mapUserToSupabase(u) {
     passwordhash: u.passwordHash,
     points_balance: u.points,
     total_lifetime_points: u.totalLifetimePoints || u.points,
+    exp: u.exp || 0,
     phone: u.phone,
     birth_date: u.birthDate || null,
     role: u.role || 'customer',
@@ -306,6 +308,7 @@ async function syncFromSupabase() {
         passwordHash: '123456',
         points: 60,
         totalLifetimePoints: 60,
+        exp: 60,
         phone: '0812345678',
         birthDate: '1995-08-15',
         role: 'customer',
@@ -318,6 +321,7 @@ async function syncFromSupabase() {
         passwordHash: '123456',
         points: 150,
         totalLifetimePoints: 150,
+        exp: 150,
         phone: '0898765432',
         birthDate: '1998-04-20',
         role: 'customer',
@@ -522,12 +526,15 @@ const DB = {
 
     const oldPoints = users[userIdx].points;
     const oldLifetime = users[userIdx].totalLifetimePoints || oldPoints;
+    const oldExp = users[userIdx].exp || 0;
     
     users[userIdx].points += pointsGained;
     users[userIdx].totalLifetimePoints = oldLifetime + pointsGained;
+    users[userIdx].exp = oldExp + pointsGained;
     
     const newPoints = users[userIdx].points;
     const newLifetime = users[userIdx].totalLifetimePoints;
+    const newExp = users[userIdx].exp;
 
     this.saveUsers(users);
 
@@ -547,9 +554,9 @@ const DB = {
     localStorage.setItem('ptom_scans', JSON.stringify(scans));
 
     // Log Activity
-    const oldRank = this.getRank(oldLifetime).name;
-    const newRank = this.getRank(newLifetime).name;
-    let desc = `${description} +${pointsGained} แต้ม (ยอดรวม: ${newPoints} แต้ม)`;
+    const oldRank = this.getRank(oldExp).name;
+    const newRank = this.getRank(newExp).name;
+    let desc = `${description} +${pointsGained} แต้ม (ยอดรวม: ${newPoints} แต้ม, EXP รวม: ${newExp} EXP)`;
     
     if (oldRank !== newRank) {
       desc += ` เลื่อนระดับแรงค์เป็น ${newRank}!`;
@@ -562,7 +569,7 @@ const DB = {
     this.logActivity(username, 'ได้รับคะแนนสะสม', desc);
 
     // LINE Notification for Points Earned
-    this.sendLineNotification(username, `ยินดีด้วย! คุณได้รับ +${pointsGained} แต้มสะสมจากกิจกรรม: "${description}" ตอนนี้คุณมียอดคะแนนสะสมรวมทั้งหมด ${newPoints} แต้มแล้วครับ! 🌟`);
+    this.sendLineNotification(username, `ยินดีด้วย! คุณได้รับ +${pointsGained} แต้มสะสม และ +${pointsGained} EXP จากกิจกรรม: "${description}" ตอนนี้คุณมี ${newPoints} แต้มสะสม และ ${newExp} EXP แล้วครับ! 🌟`);
 
     // Milestone Rewards trigger
     this.checkMilestoneRewards(username, oldLifetime, newLifetime);
@@ -576,7 +583,8 @@ const DB = {
     // Supabase patching
     sbQuery(`ptom_users?username=eq.${encodeURIComponent(username)}`, 'PATCH', { 
       points_balance: newPoints,
-      total_lifetime_points: newLifetime
+      total_lifetime_points: newLifetime,
+      exp: newExp
     });
     
     compressBase64Image(photoData).then(compressed => {
@@ -1594,6 +1602,7 @@ const DB = {
     
     if (points > oldPoints) {
       users[idx].totalLifetimePoints = (users[idx].totalLifetimePoints || 0) + (points - oldPoints);
+      users[idx].exp = (users[idx].exp || 0) + (points - oldPoints);
     }
     
     this.saveUsers(users);
@@ -1601,7 +1610,8 @@ const DB = {
     // Supabase PATCH
     sbQuery(`ptom_users?username=eq.${encodeURIComponent(username)}`, 'PATCH', {
       points_balance: points,
-      total_lifetime_points: users[idx].totalLifetimePoints
+      total_lifetime_points: users[idx].totalLifetimePoints,
+      exp: users[idx].exp || 0
     });
   },
 
@@ -1628,12 +1638,14 @@ const DB = {
       users[userIdx].points = Math.max(0, users[userIdx].points + diff);
       if (diff > 0) {
         users[userIdx].totalLifetimePoints = (users[userIdx].totalLifetimePoints || 0) + diff;
+        users[userIdx].exp = (users[userIdx].exp || 0) + diff;
       }
       this.saveUsers(users);
 
       sbQuery(`ptom_users?username=eq.${encodeURIComponent(scan.username)}`, 'PATCH', {
         points_balance: users[userIdx].points,
-        total_lifetime_points: users[userIdx].totalLifetimePoints
+        total_lifetime_points: users[userIdx].totalLifetimePoints,
+        exp: users[userIdx].exp || 0
       });
     }
 

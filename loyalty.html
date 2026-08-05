@@ -219,7 +219,7 @@
 
   </main>
 
-  <script src="db.js?v=3"></script>
+  <script src="db.js?v=4"></script>
   <script>
     // Authentication guard
     let currentUser = DB.getCurrentUser();
@@ -245,28 +245,29 @@
       if (!currentUser) return;
 
       const pts = currentUser.points;
-      const rankInfo = DB.getRank(currentUser.totalLifetimePoints || pts);
+      const exp = currentUser.exp || 0;
+      const rankInfo = DB.getRank(exp);
 
       // Nav elements update
       document.getElementById('navRankEmoji').textContent = rankInfo.logo;
-      document.getElementById('navUserPoints').textContent = `${pts} แต้ม`;
+      document.getElementById('navUserPoints').textContent = `${pts} แต้ม (${exp} EXP)`;
 
       // Profile Panel
       document.getElementById('rankBadgeContainer').className = `rank-badge-large ${rankInfo.class}`;
       document.getElementById('rankBadgeContainer').textContent = rankInfo.logo;
       document.getElementById('rankNameText').textContent = rankInfo.name;
       document.getElementById('rankNameText').className = rankInfo.class;
-      document.getElementById('totalPointsText').textContent = `ยอดสะสม: ${pts} แต้ม (10 แต้ม = 1 แก้ว)`;
+      document.getElementById('totalPointsText').textContent = `ยอดสะสม: ${pts} แต้ม / ${exp} EXP`;
 
       // Progress bar math
       let prevThreshold = 0;
-      if (pts >= 800) {
+      if (exp >= 800) {
         prevThreshold = 800;
-      } else if (pts >= 500) {
+      } else if (exp >= 500) {
         prevThreshold = 500;
-      } else if (pts >= 300) {
+      } else if (exp >= 300) {
         prevThreshold = 300;
-      } else if (pts >= 100) {
+      } else if (exp >= 100) {
         prevThreshold = 100;
       }
 
@@ -277,12 +278,12 @@
         document.getElementById('nextRankNotice').textContent = 'ยินดีด้วย! คุณอยู่ในแรงค์สูงสุดของร้านพี่ต้อม';
       } else {
         const range = nextThreshold - prevThreshold;
-        const progress = pts - prevThreshold;
+        const progress = exp - prevThreshold;
         const percent = Math.min(100, Math.max(0, (progress / range) * 100));
 
-        document.getElementById('rankProgressText').textContent = `${pts} / ${nextThreshold}`;
+        document.getElementById('rankProgressText').textContent = `${exp} / ${nextThreshold} EXP`;
         document.getElementById('rankProgressBar').style.width = `${percent}%`;
-        document.getElementById('nextRankNotice').textContent = `อีกเพียง ${nextThreshold - pts} แต้ม เพื่อเลื่อนขึ้นแรงค์ระดับถัดไป`;
+        document.getElementById('nextRankNotice').textContent = `อีกเพียง ${nextThreshold - exp} EXP เพื่อเลื่อนขึ้นแรงค์ระดับถัดไป`;
       }
     }
 

@@ -187,7 +187,7 @@
     </div>
   </div>
 
-  <script src="db.js?v=3"></script>
+  <script src="db.js?v=4"></script>
   <script>
     // Security Session verification
     if (!DB.isAdminLoggedIn()) {
@@ -221,7 +221,7 @@
       noFoundMsg.style.display = 'none';
 
       usersList.forEach(user => {
-        const rankInfo = DB.getRank(user.totalLifetimePoints || user.points);
+        const rankInfo = DB.getRank(user.exp || 0);
         const joinDate = new Date(user.createdAt).toLocaleDateString('th-TH');
 
         const row = document.createElement('tr');
@@ -229,7 +229,7 @@
           <td><strong>${user.fullName}</strong></td>
           <td><span style="color: var(--text-sub);">@</span>${user.username}</td>
           <td>${user.email}</td>
-          <td><strong class="neon-text-cyan" style="font-family: monospace;">${user.points} Pts</strong></td>
+          <td><strong class="neon-text-cyan" style="font-family: monospace;">${user.points} Pts / ${user.exp || 0} EXP</strong></td>
           <td><span class="${rankInfo.class}">${rankInfo.logo} ${rankInfo.name}</span></td>
           <td style="font-size: 0.85rem; color: var(--text-sub);">${joinDate}</td>
           <td>

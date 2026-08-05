@@ -193,7 +193,7 @@
 
   </main>
 
-  <script src="db.js?v=3"></script>
+  <script src="db.js?v=4"></script>
   <script>
     // Authentication guard
     let currentUser = DB.getCurrentUser();
@@ -219,11 +219,12 @@
       if (!currentUser) return;
 
       const pts = currentUser.points;
-      const rankInfo = DB.getRank(currentUser.totalLifetimePoints || pts);
+      const exp = currentUser.exp || 0;
+      const rankInfo = DB.getRank(exp);
 
       // Nav elements update
       document.getElementById('navRankEmoji').textContent = rankInfo.logo;
-      document.getElementById('navUserPoints').textContent = `${pts} แต้ม`;
+      document.getElementById('navUserPoints').textContent = `${pts} แต้ม (${exp} EXP)`;
 
       // Inputs fields
       document.getElementById('usernameInput').value = currentUser.username;

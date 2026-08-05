@@ -29,6 +29,7 @@ CREATE TABLE ptom_users (
     passwordhash TEXT NOT NULL,
     points_balance INTEGER DEFAULT 0 CHECK (points_balance >= 0),
     total_lifetime_points INTEGER DEFAULT 0 CHECK (total_lifetime_points >= 0),
+    exp INTEGER DEFAULT 0 CHECK (exp >= 0),
     phone TEXT,
     birth_date DATE,
     role TEXT DEFAULT 'customer' CHECK (role IN ('customer', 'admin')),
