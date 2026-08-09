@@ -160,13 +160,34 @@ async function syncFromSupabase() {
         }
       } else {
         const mappedUsers = users.map(mapUserToLocal);
-        localStorage.setItem('ptom_users', JSON.stringify(mappedUsers));
+        
+        // Self-healing merge: Keep local points if they are higher (e.g. from offline local checkin/spin)
+        const localUsers = JSON.parse(localStorage.getItem('ptom_users')) || [];
+        const mergedUsers = mappedUsers.map(remoteUser => {
+          const localUser = localUsers.find(u => u.username === remoteUser.username);
+          if (localUser) {
+            const keepLocal = (localUser.points > remoteUser.points) || (localUser.exp > remoteUser.exp);
+            if (keepLocal) {
+              console.log(`Sync: Keeping local points for @${localUser.username} (${localUser.points} vs remote ${remoteUser.points})`);
+              // Sync back to Supabase in background
+              sbQuery(`ptom_users?username=eq.${encodeURIComponent(localUser.username)}`, 'PATCH', {
+                points_balance: localUser.points,
+                total_lifetime_points: localUser.totalLifetimePoints,
+                exp: localUser.exp
+              });
+              return localUser;
+            }
+          }
+          return remoteUser;
+        });
+
+        localStorage.setItem('ptom_users', JSON.stringify(mergedUsers));
         
         // Sync current active user
         const curUser = localStorage.getItem('ptom_current_user');
         if (curUser) {
           const parsed = JSON.parse(curUser);
-          const fresh = mappedUsers.find(u => u.username === parsed.username);
+          const fresh = mergedUsers.find(u => u.username === parsed.username);
           if (fresh) {
             localStorage.setItem('ptom_current_user', JSON.stringify(fresh));
           }
@@ -238,6 +259,32 @@ async function syncFromSupabase() {
         expiresAt: c.expires_at
       }));
       localStorage.setItem('ptom_user_coupons', JSON.stringify(mappedCoupons));
+    }
+
+    // 5b. Sync quests progress
+    const userQuests = await sbQuery('ptom_user_quests?select=*');
+    if (userQuests) {
+      const progressByUsername = {};
+      userQuests.forEach(uq => {
+        if (!progressByUsername[uq.username]) {
+          progressByUsername[uq.username] = {};
+        }
+        progressByUsername[uq.username][uq.quest_id] = uq.progress;
+      });
+      
+      // Save for each user with self-healing merge (keeping higher progress)
+      Object.keys(progressByUsername).forEach(uname => {
+        const localProgress = JSON.parse(localStorage.getItem(`ptom_quests_${uname}`)) || {};
+        const mergedProgress = { ...localProgress };
+        
+        Object.keys(progressByUsername[uname]).forEach(qid => {
+          const remoteProg = progressByUsername[uname][qid];
+          const localProg = localProgress[qid] || 0;
+          mergedProgress[qid] = Math.max(localProg, remoteProg);
+        });
+
+        localStorage.setItem(`ptom_quests_${uname}`, JSON.stringify(mergedProgress));
+      });
     }
 
     // 6. Sync gifts
@@ -331,7 +378,7 @@ async function syncFromSupabase() {
     localStorage.setItem('ptom_users', JSON.stringify(seedUsers));
   }
 
-  if (!localStorage.getItem('ptom_products')) {
+  if (!localStorage.getItem('ptom_products') || JSON.parse(localStorage.getItem('ptom_products')).length < 18) {
     const seedProducts = [
       { id: '1', name: 'อะโวคาโดน้ำผึ้งปั่น', price: 75, category: 'Signature', is_recommended: true, is_out_of_stock: false, image_url: '' },
       { id: '2', name: 'สตรอว์เบอร์รีโยเกิร์ตปั่น', price: 65, category: 'Smoothies', is_recommended: false, is_out_of_stock: false, image_url: '' },
@@ -347,7 +394,13 @@ async function syncFromSupabase() {
       { id: '12', name: 'โกโก้ร้อนเข้มข้น', price: 35, category: 'Hot', is_recommended: false, is_out_of_stock: false, image_url: '' },
       { id: '13', name: 'เอสเพรสโซ่ร้อน', price: 30, category: 'Hot', is_recommended: false, is_out_of_stock: false, image_url: '' },
       { id: '14', name: 'ลาเต้ร้อน', price: 35, category: 'Hot', is_recommended: false, is_out_of_stock: false, image_url: '' },
-      { id: '15', name: 'นมสดอุ่นน้ำผึ้ง', price: 30, category: 'Hot', is_recommended: false, is_out_of_stock: false, image_url: '' }
+      { id: '15', name: 'นมสดอุ่นน้ำผึ้ง', price: 30, category: 'Hot', is_recommended: false, is_out_of_stock: false, image_url: '' },
+      // Thai Seasonal Menu Addition
+      { id: '16', name: 'สมูทตี้มะยงชิดโยเกิร์ต', price: 85, category: 'Seasonal', is_recommended: true, is_out_of_stock: false, image_url: '' },
+      { id: '17', name: 'ทุเรียนหมอนทองน้ำกะทิปั่น', price: 120, category: 'Seasonal', is_recommended: true, is_out_of_stock: false, image_url: '' },
+      { id: '18', name: 'ลิ้นจี่กุหลาบโซดาปั่น', price: 75, category: 'Seasonal', is_recommended: false, is_out_of_stock: false, image_url: '' },
+      { id: '19', name: 'มะม่วงอกร่องน้ำกะทิปั่น', price: 80, category: 'Seasonal', is_recommended: false, is_out_of_stock: false, image_url: '' },
+      { id: '20', name: 'กระท้อนลอยแก้วสมูทตี้', price: 79, category: 'Seasonal', is_recommended: false, is_out_of_stock: false, image_url: '' }
     ];
     localStorage.setItem('ptom_products', JSON.stringify(seedProducts));
   }
@@ -664,7 +717,7 @@ const DB = {
     return `https://promptpay.io/${promptPayNumber}/${parseFloat(amount).toFixed(2)}.png`;
   },
 
-  submitOrder(username, items, totalPrice, pointsEarned, pickupTime, notes = '', isGroupOrder = false, groupId = null) {
+  submitOrder(username, items, totalPrice, pointsEarned, pickupTime, notes = '', isGroupOrder = false, groupId = null, originalPrice = null, appliedPromo = '', discountAmount = 0) {
     const users = this.getUsers();
     const userIdx = users.findIndex(u => u.username === username);
     if (userIdx === -1) throw new Error('ไม่พบข้อมูลผู้ใช้งาน');
@@ -677,6 +730,9 @@ const DB = {
       username,
       items,
       totalPrice: parseFloat(totalPrice),
+      originalPrice: originalPrice !== null ? parseFloat(originalPrice) : parseFloat(totalPrice),
+      appliedPromo: appliedPromo || '',
+      discountAmount: parseFloat(discountAmount) || 0,
       costPaid: 0, 
       pointsEarned: parseInt(pointsEarned),
       pickupTime,
@@ -706,7 +762,7 @@ const DB = {
       cost_paid: 0,
       points_earned: pointsEarned,
       pickup_time: pickupTime,
-      notes,
+      notes: notes + (appliedPromo ? ` (โค้ด: ${appliedPromo} -฿${discountAmount})` : ''),
       status: 'Pending',
       is_group_order: isGroupOrder,
       group_id: groupId,
@@ -811,6 +867,10 @@ const DB = {
       this.addPoints(order.username, pointsEarned, `สะสมแต้มจากออร์เดอร์ ${orderId} (แอดมินอนุมัติสลิปด้วยตนเอง)`);
       order.pointsAwarded = true;
       pointsAwardedNew = true;
+      
+      // Update quests progress when order is approved by admin
+      this.updateQuestProgress(order.username, 'achievement_first_order', 1);
+      this.updateQuestProgress(order.username, 'weekly_smoothie_5', 1);
     }
 
     this.saveOrders(orders);
@@ -1009,6 +1069,149 @@ const DB = {
       return redemptions.filter(r => r.username === username);
     }
     return redemptions;
+  },
+
+  // --- PROMO CODES & DISCOUNTS ---
+  validatePromoCode(code, originalPrice, username = '', currentItemPrice = 0, currentToppingsPrice = 0) {
+    if (!code) return { valid: false, message: 'กรุณากรอกรหัสส่วนลด' };
+    const cleanCode = code.trim().toLowerCase();
+    
+    // 1. Check if it matches any user coupon ID (either UUID or CPN- prefix)
+    if (username) {
+      const coupons = this.getUserCoupons(username);
+      const coupon = coupons.find(c => c.id.toLowerCase() === cleanCode);
+      
+      if (coupon) {
+        if (coupon.isUsed) {
+          return { valid: false, message: 'คูปองนี้ถูกใช้งานไปแล้ว' };
+        }
+        if (new Date() > new Date(coupon.expiresAt)) {
+          return { valid: false, message: 'คูปองนี้หมดอายุการใช้งานแล้ว' };
+        }
+        
+        // Calculate coupon discount depending on type
+        let discount = 0;
+        let label = coupon.title;
+        
+        if (coupon.couponType === 'discount_10') {
+          discount = originalPrice * 0.10;
+          label = `ส่วนลด 10% (${coupon.title})`;
+        } else if (coupon.couponType === 'free_topping') {
+          discount = currentToppingsPrice > 0 ? currentToppingsPrice : 10;
+          label = `ฟรีท็อปปิ้ง (${coupon.title})`;
+        } else if (coupon.couponType === 'free_smoothie') {
+          discount = currentItemPrice > 0 ? currentItemPrice : Math.min(originalPrice, 80);
+          label = `ฟรีเครื่องดื่ม (${coupon.title})`;
+        } else {
+          discount = 10;
+        }
+        
+        discount = Math.min(discount, originalPrice);
+        const finalPrice = Math.max(0, originalPrice - discount);
+        
+        return {
+          valid: true,
+          discount,
+          finalPrice,
+          label,
+          code: coupon.id, // Return exact coupon ID
+          isUserCoupon: true,
+          couponId: coupon.id
+        };
+      }
+    }
+    
+    // 2. Static public promo codes
+    const promoCodes = {
+      'TOM10': { type: 'percent', value: 10, minPrice: 0, label: 'ส่วนลด 10%' },
+      'SWEET20': { type: 'fixed', value: 20, minPrice: 40, label: 'ส่วนลด 20 ฿ (ขั้นต่ำ 40 ฿)' },
+      'PTOM': { type: 'fixed', value: 15, minPrice: 30, label: 'ส่วนลดพิเศษพี่ต้อม 15 ฿' },
+      'FREE50': { type: 'percent', value: 50, minPrice: 0, label: 'ส่วนลด 50%' },
+      'NEWUSER': { type: 'percent', value: 15, minPrice: 0, label: 'ส่วนลดสำหรับลูกค้าใหม่ 15%' }
+    };
+    
+    const promo = promoCodes[cleanCode];
+    if (!promo) {
+      return { valid: false, message: 'รหัสส่วนลดไม่ถูกต้อง' };
+    }
+    
+    if (originalPrice < promo.minPrice) {
+      return { valid: false, message: `ยอดสั่งซื้อขั้นต่ำสำหรับการใช้รหัสนี้คือ ฿${promo.minPrice}` };
+    }
+    
+    let discount = 0;
+    if (promo.type === 'percent') {
+      discount = originalPrice * (promo.value / 100);
+    } else if (promo.type === 'fixed') {
+      discount = promo.value;
+    }
+    
+    discount = Math.min(discount, originalPrice);
+    const finalPrice = Math.max(0, originalPrice - discount);
+    
+    return {
+      valid: true,
+      discount,
+      finalPrice,
+      label: promo.label,
+      code: cleanCode,
+      isUserCoupon: false
+    };
+  },
+
+  applyPromoToOrder(orderId, code) {
+    const orders = this.getOrders();
+    const orderIdx = orders.findIndex(o => o.id === orderId);
+    if (orderIdx === -1) throw new Error('ไม่พบคำสั่งซื้อนี้');
+    
+    const order = orders[orderIdx];
+    if (order.status !== 'Pending') {
+      throw new Error('ไม่สามารถใช้โค้ดส่วนลดกับออเดอร์นี้ได้เนื่องจากเลยขั้นตอนการจองแล้ว');
+    }
+    
+    if (order.appliedPromo && order.appliedPromo.trim().length > 0) {
+      throw new Error(`ออเดอร์นี้ได้ใช้โค้ดส่วนลด [${order.appliedPromo}] ไปแล้ว ไม่สามารถใช้ซ้ำได้`);
+    }
+
+    let currentItemPrice = order.totalPrice;
+    let currentToppingsPrice = 0;
+    
+    const originalPrice = order.originalPrice || order.totalPrice;
+    const result = this.validatePromoCode(code, originalPrice, order.username, currentItemPrice, currentToppingsPrice);
+    if (!result.valid) {
+      throw new Error(result.message);
+    }
+    
+    // If it's a user coupon, mark it as used
+    if (result.isUserCoupon && result.couponId) {
+      this.useCoupon(result.couponId);
+    }
+    
+    // Update order details
+    order.originalPrice = originalPrice;
+    order.totalPrice = result.finalPrice;
+    order.appliedPromo = result.code;
+    order.discountAmount = result.discount;
+    
+    const promoNote = `(โค้ด: ${result.code} -฿${result.discount.toFixed(2)})`;
+    order.notes = order.notes ? `${order.notes} ${promoNote}` : promoNote;
+    
+    this.saveOrders(orders);
+    
+    this.logActivity(order.username, 'ใช้งานรหัสส่วนลด', `ใช้รหัสส่วนลด ${result.code} กับออร์เดอร์ ${orderId} ได้รับส่วนลด ฿${result.discount.toFixed(2)} ยอดชำระใหม่คือ ฿${result.finalPrice.toFixed(2)}`);
+    
+    // Supabase PATCH
+    sbQuery(`ptom_orders?id=eq.${encodeURIComponent(orderId)}`, 'PATCH', {
+      total_price: result.finalPrice,
+      notes: order.notes
+    });
+    
+    return {
+      order,
+      discount: result.discount,
+      finalPrice: result.finalPrice,
+      label: result.label
+    };
   },
 
   // --- ADMIN AUTH & CONTROL ---
@@ -1929,6 +2132,174 @@ const DB = {
       updateMessages();
       updateBadge();
     });
+  },
+
+  // --- SMOOTHIE INGREDIENTS LAB DB ---
+  initIngredients() {
+    const existing = localStorage.getItem('ptom_ingredients');
+    // If ingredients list is empty or is the old short list, initialize/overwrite it with the comprehensive list
+    if (!existing || JSON.parse(existing).length < 105) {
+      const defaultIngredients = [
+        // 1. bases
+        { id: 'b-milk', name: 'นมสด (Fresh Milk)', emoji: '🥛', price: 0, color: 'rgba(255, 255, 255, 0.85)', category: 'bases' },
+        { id: 'b-yogurt', name: 'โยเกิร์ต (Yogurt)', emoji: '🍦', price: 10, color: 'rgba(254, 250, 236, 0.9)', category: 'bases' },
+        { id: 'b-coconut', name: 'น้ำมะพร้าว (Coconut Water)', emoji: '🥥', price: 10, color: 'rgba(240, 248, 255, 0.55)', category: 'bases' },
+        { id: 'b-almond', name: 'นมอัลมอนด์ (Almond Milk)', emoji: '🧃', price: 15, color: 'rgba(245, 235, 215, 0.85)', category: 'bases' },
+        { id: 'b-oat', name: 'นมโอ๊ต (Oat Milk)', emoji: '🌾', price: 15, color: 'rgba(242, 232, 213, 0.85)', category: 'bases' },
+        { id: 'b-pistachio', name: 'นมพิสตาชิโอ (Pistachio Milk)', emoji: '🥜', price: 18, color: 'rgba(235, 240, 215, 0.85)', category: 'bases' },
+        { id: 'b-soy', name: 'นมถั่วเหลือง (Soy Milk)', emoji: '🥛', price: 10, color: 'rgba(250, 245, 230, 0.85)', category: 'bases' },
+        { id: 'b-orange', name: 'น้ำส้มสด (Fresh Orange Juice)', emoji: '🍊', price: 15, color: 'rgba(255, 152, 0, 0.7)', category: 'bases' },
+        { id: 'b-apple', name: 'น้ำแอปเปิ้ล (Apple Juice)', emoji: '🍎', price: 15, color: 'rgba(255, 235, 175, 0.6)', category: 'bases' },
+        { id: 'b-pineapple', name: 'น้ำสับปะรด (Pineapple Juice)', emoji: '🍍', price: 15, color: 'rgba(255, 235, 59, 0.6)', category: 'bases' },
+        { id: 'b-pomegranate', name: 'น้ำทับทิม (Pomegranate Juice)', emoji: '🥤', price: 25, color: 'rgba(183, 28, 28, 0.6)', category: 'bases' },
+        { id: 'b-watermelon', name: 'น้ำแตงโม (Watermelon Juice)', emoji: '🍉', price: 12, color: 'rgba(244, 67, 54, 0.6)', category: 'bases' },
+        { id: 'b-greentea', name: 'น้ำชาเขียวมะลิ (Jasmine Green Tea)', emoji: '🍵', price: 10, color: 'rgba(200, 230, 201, 0.6)', category: 'bases' },
+        { id: 'b-oolong', name: 'ชาอูหลง (Oolong Tea)', emoji: '☕', price: 10, color: 'rgba(215, 204, 200, 0.6)', category: 'bases' },
+        { id: 'b-roselle', name: 'น้ำชากระเจี๊ยบ (Roselle Tea)', emoji: '🥤', price: 10, color: 'rgba(136, 14, 79, 0.6)', category: 'bases' },
+        { id: 'b-water', name: 'น้ำเปล่า/น้ำแร่ (Mineral Water)', emoji: '💧', price: 0, color: 'rgba(224, 247, 250, 0.3)', category: 'bases' },
+        { id: 'b-coconutmilk', name: 'กะทิสด/กะทิธัญพืช (Coconut Milk)', emoji: '🥥', price: 12, color: 'rgba(255, 255, 255, 0.95)', category: 'bases' },
+        { id: 'b-greekyogurt', name: 'กรีกโยเกิร์ต (Greek Yogurt)', emoji: '🥛', price: 20, color: 'rgba(255, 253, 245, 0.98)', category: 'bases' },
+        { id: 'b-cocyogurt', name: 'โยเกิร์ตมะพร้าว (Coconut Yogurt - Plant-based)', emoji: '🥥', price: 22, color: 'rgba(255, 255, 250, 0.95)', category: 'bases' },
+        { id: 'b-kombucha', name: 'Kombucha / ชาหมัก (Kombucha Base)', emoji: '🍾', price: 25, color: 'rgba(230, 200, 160, 0.6)', category: 'bases' },
+
+        // 2. fruits
+        { id: 'f-strawberry', name: 'สตรอเบอร์รี่ (Strawberry)', emoji: '🍓', price: 15, color: 'rgba(255, 56, 96, 0.95)', category: 'fruits' },
+        { id: 'f-blueberry', name: 'บลูเบอร์รี่ (Blueberry)', emoji: '🫐', price: 20, color: 'rgba(74, 20, 140, 0.95)', category: 'fruits' },
+        { id: 'f-raspberry', name: 'ราสเบอร์รี่ (Raspberry)', emoji: '🍒', price: 20, color: 'rgba(233, 30, 99, 0.95)', category: 'fruits' },
+        { id: 'f-blackberry', name: 'แบล็กเบอร์รี่ (Blackberry)', emoji: '🍇', price: 22, color: 'rgba(49, 27, 146, 0.95)', category: 'fruits' },
+        { id: 'f-mango', name: 'มะม่วงสุก (Mango)', emoji: '🥭', price: 15, color: 'rgba(255, 193, 7, 0.95)', category: 'fruits' },
+        { id: 'f-banana', name: 'กล้วยหอม (Banana)', emoji: '🍌', price: 10, color: 'rgba(255, 235, 131, 0.95)', category: 'fruits' },
+        { id: 'f-avocado', name: 'อะโวคาโด (Avocado)', emoji: '🥑', price: 25, color: 'rgba(164, 222, 2, 0.95)', category: 'fruits' },
+        { id: 'f-pineapple', name: 'สับปะรด (Pineapple)', emoji: '🍍', price: 10, color: 'rgba(255, 215, 0, 0.95)', category: 'fruits' },
+        { id: 'f-kiwi', name: 'กีวี่เขียว (Green Kiwi)', emoji: '🥝', price: 15, color: 'rgba(139, 195, 74, 0.95)', category: 'fruits' },
+        { id: 'f-goldkiwi', name: 'กีวี่ทอง (Gold Kiwi)', emoji: '🥝', price: 18, color: 'rgba(255, 202, 40, 0.95)', category: 'fruits' },
+        { id: 'f-dragon', name: 'แก้วมังกรแดง (Red Dragon Fruit)', emoji: '🐉', price: 15, color: 'rgba(194, 24, 91, 0.95)', category: 'fruits' },
+        { id: 'f-passion', name: 'เสาวรส (Passion Fruit)', emoji: '🍊', price: 15, color: 'rgba(255, 112, 67, 0.95)', category: 'fruits' },
+        { id: 'f-orange', name: 'ส้มสายน้ำผึ้ง (Orange)', emoji: '🍊', price: 12, color: 'rgba(255, 152, 0, 0.95)', category: 'fruits' },
+        { id: 'f-gapple', name: 'แอปเปิ้ลเขียว (Green Apple)', emoji: '🍏', price: 12, color: 'rgba(118, 255, 3, 0.95)', category: 'fruits' },
+        { id: 'f-rapple', name: 'แอปเปิ้ลแดง (Red Apple)', emoji: '🍎', price: 12, color: 'rgba(229, 57, 53, 0.95)', category: 'fruits' },
+        { id: 'f-peach', name: 'พีช (Peach)', emoji: '🍑', price: 18, color: 'rgba(255, 171, 145, 0.95)', category: 'fruits' },
+        { id: 'f-watermelon', name: 'แตงโม (Watermelon)', emoji: '🍉', price: 10, color: 'rgba(244, 67, 54, 0.95)', category: 'fruits' },
+        { id: 'f-cantaloupe', name: 'แคนตาลูป (Cantaloupe)', emoji: '🍈', price: 12, color: 'rgba(220, 237, 200, 0.95)', category: 'fruits' },
+        { id: 'f-papaya', name: 'มะละกอ (Papaya)', emoji: '🥭', price: 10, color: 'rgba(255, 112, 67, 0.95)', category: 'fruits' },
+        { id: 'f-grape', name: 'องุ่นไร้เมล็ด (Seedless Grapes)', emoji: '🍇', price: 18, color: 'rgba(123, 31, 162, 0.95)', category: 'fruits' },
+        // Thai Seasonal Fruits Addition
+        { id: 'f-durian', name: 'ทุเรียนหมอนทอง (Durian)', emoji: '🥭', price: 35, color: 'rgba(255, 235, 59, 0.95)', category: 'fruits' },
+        { id: 'f-mangosteen', name: 'มังคุดคัด (Mangosteen)', emoji: '🍇', price: 20, color: 'rgba(74, 20, 140, 0.95)', category: 'fruits' },
+        { id: 'f-marianplum', name: 'มะยงชิดหวาน (Marian Plum)', emoji: '🍊', price: 25, color: 'rgba(255, 152, 0, 0.95)', category: 'fruits' },
+        { id: 'f-rambutan', name: 'เงาะโรงเรียน (Rambutan)', emoji: '🍒', price: 15, color: 'rgba(255, 205, 210, 0.95)', category: 'fruits' },
+        { id: 'f-lychee', name: 'ลิ้นจี่จักรพรรดิ (Lychee)', emoji: '🍓', price: 20, color: 'rgba(255, 240, 240, 0.95)', category: 'fruits' },
+        { id: 'f-longan', name: 'ลำไยอีดอ (Longan)', emoji: '🍈', price: 15, color: 'rgba(255, 243, 224, 0.95)', category: 'fruits' },
+        { id: 'f-custardapple', name: 'น้อยหน่าปากช่อง (Custard Apple)', emoji: '🍈', price: 20, color: 'rgba(240, 248, 240, 0.95)', category: 'fruits' },
+        { id: 'f-santol', name: 'กระท้อนปุยฝ้าย (Santol)', emoji: '🍑', price: 18, color: 'rgba(255, 224, 178, 0.95)', category: 'fruits' },
+        { id: 'f-starfruit', name: 'มะเฟือง (Star Fruit)', emoji: '⭐️', price: 12, color: 'rgba(255, 238, 88, 0.95)', category: 'fruits' },
+        { id: 'f-sapodilla', name: 'ละมุด (Sapodilla)', emoji: '🥥', price: 15, color: 'rgba(161, 136, 127, 0.95)', category: 'fruits' },
+
+        // 3. greens
+        { id: 'g-spinach', name: 'ผักโขม (Spinach)', emoji: '🥬', price: 10, color: 'rgba(46, 125, 50, 0.95)', category: 'greens' },
+        { id: 'g-kale', name: 'เคล / ผักคะน้าใบหยิก (Kale)', emoji: '🌿', price: 15, color: 'rgba(27, 94, 32, 0.95)', category: 'greens' },
+        { id: 'g-romaine', name: 'ผักสลัดคอส (Romaine Lettuce)', emoji: '🥬', price: 10, color: 'rgba(76, 175, 80, 0.95)', category: 'greens' },
+        { id: 'g-bokchoy', name: 'กวางตุ้งไต้หวัน (Bok Choy)', emoji: '🥬', price: 10, color: 'rgba(139, 195, 74, 0.95)', category: 'greens' },
+        { id: 'g-rocket', name: 'ผักร็อกเก็ต (Arugula / Rocket)', emoji: '🌿', price: 12, color: 'rgba(56, 142, 60, 0.95)', category: 'greens' },
+        { id: 'g-mint', name: 'ใบมินต์ / สเปียร์มินต์ (Fresh Mint)', emoji: '🍃', price: 5, color: 'rgba(165, 214, 167, 0.95)', category: 'greens' },
+        { id: 'g-basil', name: 'ใบโหระพา / กะเพราเม็กซิกัน (Sweet Basil)', emoji: '🌿', price: 5, color: 'rgba(102, 187, 106, 0.95)', category: 'greens' },
+        { id: 'g-celery', name: 'เซเลอรี / ขึ้นฉ่ายฝรั่ง (Celery)', emoji: '🥦', price: 10, color: 'rgba(129, 199, 132, 0.95)', category: 'greens' },
+        { id: 'g-cucumber', name: 'แตงกวาญี่ปุ่น (Japanese Cucumber)', emoji: '🥒', price: 10, color: 'rgba(200, 230, 201, 0.95)', category: 'greens' },
+        { id: 'g-broccoli', name: 'บรอกโคลี (Broccoli)', emoji: '🥦', price: 10, color: 'rgba(56, 142, 60, 0.95)', category: 'greens' },
+        { id: 'g-redspinach', name: 'ผักโขมแดง (Red Spinach)', emoji: '🥬', price: 12, color: 'rgba(136, 14, 79, 0.95)', category: 'greens' },
+        { id: 'g-babykale', name: 'ก้านคะน้าอ่อน (Baby Kale)', emoji: '🌿', price: 15, color: 'rgba(27, 94, 32, 0.95)', category: 'greens' },
+        { id: 'g-parsley', name: 'ใบผักชีฝรั่ง / พาร์สลีย์ (Parsley)', emoji: '🌿', price: 5, color: 'rgba(129, 199, 132, 0.95)', category: 'greens' },
+        { id: 'g-wheatgrass', name: 'ใบต้นอ่อนข้าวสาลี (Wheatgrass)', emoji: '🌾', price: 20, color: 'rgba(76, 175, 80, 0.95)', category: 'greens' },
+        { id: 'g-sunflower', name: 'ต้นอ่อนทานตะวัน (Sunflower Sprouts)', emoji: '🌱', price: 10, color: 'rgba(197, 225, 165, 0.95)', category: 'greens' },
+        { id: 'g-pumpkin', name: 'ฟักทองนึ่ง (Steamed Pumpkin)', emoji: '🎃', price: 12, color: 'rgba(255, 167, 38, 0.95)', category: 'greens' },
+        { id: 'g-carrot', name: 'แครอท (Carrot)', emoji: '🥕', price: 10, color: 'rgba(255, 112, 67, 0.95)', category: 'greens' },
+        { id: 'g-beetroot', name: 'บีทรูท (Beetroot)', emoji: '🍠', price: 12, color: 'rgba(186, 104, 200, 0.95)', category: 'greens' },
+        { id: 'g-tomato', name: 'มะเขือเทศเชอร์รี่ (Cherry Tomato)', emoji: '🍅', price: 10, color: 'rgba(229, 57, 53, 0.95)', category: 'greens' },
+        { id: 'g-zucchini', name: 'ซูกินี (Zucchini)', emoji: '🥒', price: 12, color: 'rgba(165, 214, 167, 0.95)', category: 'greens' },
+
+        // 4. sweeteners
+        { id: 's-honey', name: 'น้ำผึ้งแท้ (Pure Honey)', emoji: '🍯', price: 5, color: 'rgba(255, 179, 0, 0.95)', category: 'sweeteners' },
+        { id: 's-monk', name: 'ไซรับหล่อฮังก๊วย (Monk Fruit Syrup)', emoji: '🧉', price: 10, color: 'rgba(109, 76, 65, 0.95)', category: 'sweeteners' },
+        { id: 's-agave', name: 'น้ำเซรัปอากาเว่ (Agave Nectar)', emoji: '🍯', price: 10, color: 'rgba(255, 236, 179, 0.95)', category: 'sweeteners' },
+        { id: 's-cocsugar', name: 'น้ำตานดอกมะพร้าว (Coconut Sugar)', emoji: '🥥', price: 8, color: 'rgba(215, 204, 200, 0.95)', category: 'sweeteners' },
+        { id: 's-datesyrup', name: 'น้ำเชื่อมอินทผาลัม (Date Syrup)', emoji: '🧉', price: 10, color: 'rgba(93, 64, 55, 0.95)', category: 'sweeteners' },
+        { id: 's-maple', name: 'น้ำเชื่อมเมเปิ้ล (Maple Syrup)', emoji: '🍁', price: 10, color: 'rgba(141, 110, 99, 0.95)', category: 'sweeteners' },
+        { id: 's-stevia', name: 'ไซรัปหญ้าหวาน (Stevia Drops)', emoji: '🍃', price: 5, color: 'rgba(255, 255, 255, 0.1)', category: 'sweeteners' },
+        { id: 's-dates', name: 'อินทผาลัมอบแห้ง (Dried Dates)', emoji: '🍇', price: 10, color: 'rgba(93, 64, 55, 0.95)', category: 'sweeteners' },
+        { id: 's-vanilla', name: 'น้ำเชื่อมวานิลลา (Vanilla Syrup)', emoji: '🧪', price: 5, color: 'rgba(255, 248, 225, 0.95)', category: 'sweeteners' },
+        { id: 's-milk', name: 'นมข้นหวาน (Condensed Milk)', emoji: '🍼', price: 0, color: 'rgba(255, 253, 230, 0.95)', category: 'sweeteners' },
+        { id: 's-cocmilk', name: 'นมข้นมะพร้าว (Coconut Condensed Milk)', emoji: '🥥', price: 10, color: 'rgba(255, 255, 240, 0.95)', category: 'sweeteners' },
+        { id: 's-caramel', name: 'ไซรัปคาราเมล (Caramel Syrup)', emoji: '🍯', price: 8, color: 'rgba(244, 143, 177, 0.95)', category: 'sweeteners' },
+        { id: 's-hazelnut', name: 'ไซรัปเฮเซลนัท (Hazelnut Syrup)', emoji: '🌰', price: 8, color: 'rgba(215, 204, 200, 0.95)', category: 'sweeteners' },
+        { id: 's-choc', name: 'ซอสช็อกโกแลต (Chocolate Sauce)', emoji: '🍫', price: 8, color: 'rgba(62, 39, 35, 0.95)', category: 'sweeteners' },
+        { id: 's-strawsauce', name: 'ซอสสตอเบอร์รี่ (Strawberry Sauce)', emoji: '🍓', price: 8, color: 'rgba(216, 27, 96, 0.95)', category: 'sweeteners' },
+        { id: 's-passsauce', name: 'ซอสเสาวรส (Passion Fruit Puree)', emoji: '🍊', price: 8, color: 'rgba(251, 140, 0, 0.95)', category: 'sweeteners' },
+        { id: 's-sugarfree', name: 'ไซรัปชูการ์ฟรี (Sugar-Free Syrup)', emoji: '🧪', price: 5, color: 'rgba(255, 255, 255, 0.1)', category: 'sweeteners' },
+        { id: 's-rawcane', name: 'น้ำตาลอ้อยไม่ขัดสี (Raw Cane Sugar)', emoji: '🍬', price: 0, color: 'rgba(255, 243, 224, 0.95)', category: 'sweeteners' },
+        { id: 's-rose', name: 'น้ำเชื่อมกลิ่นกุหลาบ (Rose Syrup)', emoji: '🌹', price: 5, color: 'rgba(240, 98, 146, 0.95)', category: 'sweeteners' },
+        { id: 's-yuzu', name: 'น้ำเชื่อมยูซุ (Yuzu Syrup)', emoji: '🍋', price: 10, color: 'rgba(255, 241, 118, 0.95)', category: 'sweeteners' },
+
+        // 5. boosters
+        { id: 't-wheyvan', name: 'เวย์โปรตีนรสวานิลลา (Whey Protein Vanilla)', emoji: '💪', price: 25, color: 'rgba(236, 239, 241, 0.95)', category: 'boosters' },
+        { id: 't-wheychoc', name: 'เวย์โปรตีนรสช็อกโกแลต (Whey Protein Chocolate)', emoji: '💪', price: 25, color: 'rgba(141, 110, 99, 0.95)', category: 'boosters' },
+        { id: 't-plantprot', name: 'พลานต์โปรตีน / โปรตีนพืช (Plant Protein)', emoji: '🌱', price: 25, color: 'rgba(200, 230, 201, 0.95)', category: 'boosters' },
+        { id: 't-chia', name: 'เมล็ดเจีย (Chia Seeds)', emoji: '🌱', price: 10, color: 'rgba(38, 50, 56, 0.95)', category: 'boosters' },
+        { id: 't-flax', name: 'เมล็ดแฟลกซ์บด (Flax Seeds)', emoji: '🌾', price: 10, color: 'rgba(141, 110, 99, 0.95)', category: 'boosters' },
+        { id: 't-collagen', name: 'ผงคอลลาเจน (Collagen Powder)', emoji: '🥛', price: 20, color: 'rgba(255, 255, 255, 0.95)', category: 'boosters' },
+        { id: 't-matcha', name: 'ผงมัจฉะ (Matcha Powder)', emoji: '🍵', price: 15, color: 'rgba(76, 175, 80, 0.95)', category: 'boosters' },
+        { id: 't-acai', name: 'ผงอาซาอิ (Acai Powder)', emoji: '🍇', price: 25, color: 'rgba(74, 20, 140, 0.95)', category: 'boosters' },
+        { id: 't-spirulina', name: 'ผงสปิรูลิน่า (Spirulina Powder)', emoji: '🧪', price: 25, color: 'rgba(0, 77, 64, 0.95)', category: 'boosters' },
+        { id: 't-maca', name: 'ผงมาค่า (Maca Powder)', emoji: '🍠', price: 25, color: 'rgba(215, 204, 200, 0.95)', category: 'boosters' },
+        { id: 't-cacao', name: 'ผงโกโก้แท้ (Raw Cacao Powder)', emoji: '🍫', price: 15, color: 'rgba(93, 64, 55, 0.95)', category: 'boosters' },
+        { id: 't-granola', name: 'กราโนล่า (Granola)', emoji: '🥣', price: 10, color: 'rgba(161, 136, 127, 0.95)', category: 'boosters' },
+        { id: 't-pumpkin', name: 'เมล็ดฟักทองอบ (Pumpkin Seeds)', emoji: '🎃', price: 10, color: 'rgba(139, 195, 74, 0.95)', category: 'boosters' },
+        { id: 't-sunflower', name: 'เมล็ดทานตะวัน (Sunflower Seeds)', emoji: '🌻', price: 10, color: 'rgba(255, 241, 118, 0.95)', category: 'boosters' },
+        { id: 't-almond', name: 'อัลมอนด์สไลซ์ (Sliced Almonds)', emoji: '🌰', price: 12, color: 'rgba(188, 170, 164, 0.95)', category: 'boosters' },
+        { id: 't-cashew', name: 'เม็ดมะม่วงหิมพานต์ (Cashew Nuts)', emoji: '🌰', price: 12, color: 'rgba(215, 204, 200, 0.95)', category: 'boosters' },
+        { id: 't-peanutbutter', name: 'เนยถั่วปอนด์ (Peanut Butter)', emoji: '🥜', price: 15, color: 'rgba(255, 183, 77, 0.95)', category: 'boosters' },
+        { id: 't-almondbutter', name: 'เนยอัลมอนด์ (Almond Butter)', emoji: '🥜', price: 20, color: 'rgba(215, 125, 45, 0.95)', category: 'boosters' },
+        { id: 't-cocoflake', name: 'มะพร้าวอบกรอบ (Toasted Coconut Flakes)', emoji: '🥥', price: 10, color: 'rgba(255, 255, 255, 0.95)', category: 'boosters' },
+        { id: 't-cacaonibs', name: 'คาเคานิบส์ (Cacao Nibs)', emoji: '🍫', price: 15, color: 'rgba(62, 39, 35, 0.95)', category: 'boosters' }
+      ];
+      localStorage.setItem('ptom_ingredients', JSON.stringify(defaultIngredients));
+    }
+  },
+  getIngredients() {
+    this.initIngredients();
+    return JSON.parse(localStorage.getItem('ptom_ingredients')) || [];
+  },
+  saveIngredients(list) {
+    localStorage.setItem('ptom_ingredients', JSON.stringify(list));
+  },
+  addIngredient(name, emoji, price, color, category) {
+    const list = this.getIngredients();
+    const id = 'ing-' + Math.floor(100000 + Math.random() * 900000);
+    const newItem = { id, name, emoji, price: parseFloat(price) || 0, color, category, is_out_of_stock: false };
+    list.push(newItem);
+    this.saveIngredients(list);
+    return newItem;
+  },
+  updateIngredient(id, name, emoji, price, color, category, isOutOfStock = false) {
+    const list = this.getIngredients();
+    const idx = list.findIndex(item => item.id === id);
+    if (idx === -1) throw new Error('ไม่พบวัตถุดิบนี้ในระบบ');
+    list[idx] = { ...list[idx], name, emoji, price: parseFloat(price) || 0, color, category, is_out_of_stock: !!isOutOfStock };
+    this.saveIngredients(list);
+    return list[idx];
+  },
+  toggleIngredientStock(id) {
+    const list = this.getIngredients();
+    const idx = list.findIndex(item => item.id === id);
+    if (idx === -1) throw new Error('ไม่พบวัตถุดิบนี้ในระบบ');
+    list[idx].is_out_of_stock = !list[idx].is_out_of_stock;
+    this.saveIngredients(list);
+    return list[idx];
+  },
+  deleteIngredient(id) {
+    const list = this.getIngredients();
+    const filtered = list.filter(item => item.id !== id);
+    if (list.length === filtered.length) throw new Error('ไม่พบวัตถุดิบนี้ในระบบ');
+    this.saveIngredients(filtered);
   }
 };
 

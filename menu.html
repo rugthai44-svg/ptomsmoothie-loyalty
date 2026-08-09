@@ -178,6 +178,7 @@
     <ul class="nav-links" id="navLinks">
       <li><a href="home.html" class="nav-link">หน้าแรก</a></li>
       <li><a href="menu.html" class="nav-link active">เมนูน้ำปั่น</a></li>
+      <li><a href="lab.html" class="nav-link">Smoothie Lab 🧪</a></li>
       <li><a href="loyalty.html" class="nav-link">สะสมแต้ม</a></li>
       <li><a href="rewards.html" class="nav-link">รางวัลของฉัน</a></li>
       <li><a href="quests.html" class="nav-link">วงล้อ & เควสต์</a></li>
@@ -211,9 +212,10 @@
     <p style="text-align: center; color: var(--text-sub); margin-bottom: 40px; font-size: 0.95rem;">เลือกเมนูที่ต้องการจอง ปรับแต่งระดับความหวาน/ท็อปปิ้ง และระบุเวลารับเครื่องดื่ม</p>
 
     <!-- Filters -->
-    <div class="menu-filter-container">
+    <div class="menu-filter-container" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 24px;">
       <button class="btn btn-primary" onclick="filterMenu('all', this)">ทั้งหมด</button>
       <button class="btn btn-secondary" onclick="filterMenu('smoothie', this)">เมนูปั่น (Smoothie)</button>
+      <button class="btn btn-secondary" onclick="filterMenu('seasonal', this)">🥭 ผลไม้ตามฤดูกาลไทย</button>
       <button class="btn btn-secondary" onclick="filterMenu('cold', this)">เมนูเย็น (Cold)</button>
       <button class="btn btn-secondary" onclick="filterMenu('hot', this)">เมนูร้อน (Hot)</button>
     </div>
@@ -277,9 +279,19 @@
       </div>
 
       <!-- Notes input -->
-      <div style="margin-bottom: 24px;">
+      <div style="margin-bottom: 20px;">
         <label class="form-label" for="bookingNotesInput">โน้ตคำสั่งพิเศษเพิ่มเติม:</label>
         <input class="form-input" type="text" id="bookingNotesInput" placeholder="เช่น แยกน้ำแข็ง, หวานธรรมชาติ ฯลฯ">
+      </div>
+
+      <!-- Booking Promo Code -->
+      <div style="margin-bottom: 24px;">
+        <label class="form-label" for="bookingPromoInput">โค้ดส่วนลด (Promo Code / คูปอง CPN-XXXXX):</label>
+        <div style="display: flex; gap: 8px;">
+          <input class="form-input" type="text" id="bookingPromoInput" placeholder="เช่น TOM10, SWEET20" style="margin: 0; font-size: 0.9rem;">
+          <button class="btn btn-secondary" id="btnApplyBookingPromo" style="padding: 8px 16px; font-size: 0.85rem; white-space: nowrap;">ใช้โค้ด</button>
+        </div>
+        <div id="bookingPromoMessage" style="font-size: 0.8rem; margin-top: 6px; display: none;"></div>
       </div>
 
       <!-- Checkout Summary -->
@@ -331,6 +343,16 @@
           <span style="color: var(--text-sub);">ยอดชำระเงิน:</span>
           <strong id="successPriceText" style="color: var(--accent-green);">0.00 ฿</strong>
         </p>
+      </div>
+
+      <!-- Discount Code Section in Success Modal -->
+      <div id="successPromoContainer" style="background: rgba(0, 240, 255, 0.02); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; margin: 10px 0; text-align: left;">
+        <label class="form-label" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; display: block; color: var(--accent-cyan);">🎟️ ใส่รหัสส่วนลด / คูปองเพิ่มเติม:</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="successPromoCodeInput" placeholder="เช่น TOM10, SWEET20 หรือ CPN-XXXXX" class="form-input" style="margin: 0; padding: 8px; font-size: 0.85rem; flex: 1;">
+          <button class="btn btn-primary" id="btnApplySuccessPromo" style="padding: 8px 16px; font-size: 0.85rem; white-space: nowrap;">ใช้โค้ด</button>
+        </div>
+        <div id="successPromoMessage" style="font-size: 0.8rem; margin-top: 6px; display: none;"></div>
       </div>
 
       <!-- Slip Upload Container in Success Modal -->
@@ -386,7 +408,7 @@
     
     // Map database products to client menuItems
     const menuItems = dbProducts.map(p => {
-      // Map category to client categories (smoothie, cold, hot, snacks)
+      // Map category to client categories (smoothie, cold, hot, snacks, seasonal)
       let cat = 'smoothie';
       const dbCat = (p.category || '').toLowerCase();
       if (dbCat === 'coffee' || dbCat === 'tea' || dbCat === 'soda' || dbCat === 'cold') {
@@ -395,6 +417,8 @@
         cat = 'hot';
       } else if (dbCat === 'snacks' || dbCat === 'snack') {
         cat = 'snacks';
+      } else if (dbCat === 'seasonal') {
+        cat = 'seasonal';
       } else {
         // signature, smoothies, healthy, etc.
         cat = 'smoothie';
@@ -434,6 +458,7 @@
         if (item.category === 'smoothie') catIcon = '🥤';
         else if (item.category === 'cold') catIcon = '🍹';
         else if (item.category === 'hot') catIcon = '☕';
+        else if (item.category === 'seasonal') catIcon = '🥭';
         else catIcon = '🍰';
 
         const imgHtml = item.imageUrl 
@@ -481,6 +506,7 @@
 
     // --- BOOKING LOGIC ---
     let selectedItem = null;
+    let appliedModalPromo = null; // Stored verified promo
     const bookingModal = document.getElementById('bookingModal');
     const bookModalTitle = document.getElementById('bookModalTitle');
     const bookModalDesc = document.getElementById('bookModalDesc');
@@ -517,6 +543,13 @@
       pickupTimeSelect.value = 'อีก 15 นาที';
       customTimeInput.style.display = 'none';
       customTimeInput.value = '';
+
+      // Reset promo fields in modal
+      document.getElementById('bookingPromoInput').value = '';
+      const promoMsg = document.getElementById('bookingPromoMessage');
+      promoMsg.style.display = 'none';
+      promoMsg.textContent = '';
+      appliedModalPromo = null;
 
       recalcPrice();
       bookingModal.classList.add('show');
@@ -558,23 +591,106 @@
     });
 
     function recalcPrice() {
-      if (!selectedItem) return;
-      let total = selectedItem.price;
+      if (!selectedItem) return { originalPrice: 0, finalPrice: 0 };
+      let originalTotal = selectedItem.price;
 
       if (selectedItem.category !== 'snacks') {
         // Toppings
         document.querySelectorAll('#toppingsGroup .option-pill.active').forEach(el => {
-          total += parseInt(el.getAttribute('data-price'), 10) || 0;
+          originalTotal += parseInt(el.getAttribute('data-price'), 10) || 0;
         });
         // Base Option
         document.querySelectorAll('#baseGroup .option-pill.active').forEach(el => {
-          total += parseInt(el.getAttribute('data-price'), 10) || 0;
+          originalTotal += parseInt(el.getAttribute('data-price'), 10) || 0;
         });
       }
 
-      bookingTotalPrice.textContent = `${total.toFixed(2)} ฿`;
-      return total;
+      let finalPrice = originalTotal;
+      const promoMsg = document.getElementById('bookingPromoMessage');
+
+      if (appliedModalPromo) {
+        let currentToppingsPrice = 0;
+        if (selectedItem.category !== 'snacks') {
+          document.querySelectorAll('#toppingsGroup .option-pill.active').forEach(el => {
+            currentToppingsPrice += parseInt(el.getAttribute('data-price'), 10) || 0;
+          });
+        }
+        
+        const result = DB.validatePromoCode(
+          appliedModalPromo.code, 
+          originalTotal, 
+          currentUser.username, 
+          selectedItem.price, 
+          currentToppingsPrice
+        );
+        
+        if (result.valid) {
+          finalPrice = result.finalPrice;
+          promoMsg.textContent = `✅ 적용: ${result.label} (-฿${result.discount.toFixed(2)})`;
+          promoMsg.style.color = 'var(--accent-green)';
+          promoMsg.style.display = 'block';
+          appliedModalPromo = result;
+        } else {
+          promoMsg.textContent = `❌ ${result.message}`;
+          promoMsg.style.color = 'var(--accent-red)';
+          promoMsg.style.display = 'block';
+          appliedModalPromo = null;
+        }
+      }
+
+      bookingTotalPrice.textContent = `${finalPrice.toFixed(2)} ฿`;
+      if (appliedModalPromo && finalPrice < originalTotal) {
+        bookingTotalPrice.innerHTML = `<span style="text-decoration: line-through; color: var(--text-sub); font-size: 1rem; margin-right: 8px;">${originalTotal.toFixed(2)} ฿</span>${finalPrice.toFixed(2)} ฿`;
+      }
+
+      return {
+        originalPrice: originalTotal,
+        finalPrice: finalPrice
+      };
     }
+
+    // Apply promo in modal
+    const btnApplyBookingPromo = document.getElementById('btnApplyBookingPromo');
+    btnApplyBookingPromo.addEventListener('click', () => {
+      const code = document.getElementById('bookingPromoInput').value.trim();
+      const promoMsg = document.getElementById('bookingPromoMessage');
+      
+      if (!code) {
+        promoMsg.textContent = '❌ กรุณากรอกรหัสส่วนลด';
+        promoMsg.style.color = 'var(--accent-red)';
+        promoMsg.style.display = 'block';
+        appliedModalPromo = null;
+        recalcPrice();
+        return;
+      }
+      
+      const prices = recalcPrice();
+      let currentToppingsPrice = 0;
+      if (selectedItem.category !== 'snacks') {
+        document.querySelectorAll('#toppingsGroup .option-pill.active').forEach(el => {
+          currentToppingsPrice += parseInt(el.getAttribute('data-price'), 10) || 0;
+        });
+      }
+      
+      const result = DB.validatePromoCode(
+        code, 
+        prices.originalPrice, 
+        currentUser.username, 
+        selectedItem.price, 
+        currentToppingsPrice
+      );
+      
+      if (result.valid) {
+        appliedModalPromo = result;
+        recalcPrice();
+      } else {
+        promoMsg.textContent = `❌ ${result.message}`;
+        promoMsg.style.color = 'var(--accent-red)';
+        promoMsg.style.display = 'block';
+        appliedModalPromo = null;
+        recalcPrice();
+      }
+    });
 
     // Confirm booking submission
     const btnConfirmBooking = document.getElementById('btnConfirmBooking');
@@ -600,7 +716,11 @@
         }
 
         const notes = bookingNotesInput.value.trim();
-        const finalPrice = recalcPrice();
+        const prices = recalcPrice();
+        const finalPrice = prices.finalPrice;
+        const originalPrice = prices.originalPrice;
+        const promoCode = appliedModalPromo ? appliedModalPromo.code : '';
+        const discountAmount = appliedModalPromo ? appliedModalPromo.discount : 0;
 
         // Drink summary string
         let optionsStr = sweetness;
@@ -619,7 +739,12 @@
           finalPrice, 
           10, // awards +10 points per drink
           pickupTime, 
-          notes
+          notes,
+          false,
+          null,
+          originalPrice,
+          promoCode,
+          discountAmount
         );
 
         // Close booking modal and show success modal
@@ -701,9 +826,68 @@
       orderSlipPreviewContainer.style.display = 'none';
       btnSubmitOrderSlip.disabled = true;
 
+      // Reset success modal promo inputs
+      const promoInput = document.getElementById('successPromoCodeInput');
+      const promoMsg = document.getElementById('successPromoMessage');
+      const applyBtn = document.getElementById('btnApplySuccessPromo');
+      
+      promoInput.value = '';
+      promoInput.disabled = false;
+      applyBtn.disabled = false;
+      promoMsg.style.display = 'none';
+      promoMsg.textContent = '';
+
+      if (order.appliedPromo) {
+        promoInput.value = order.appliedPromo;
+        promoInput.disabled = true;
+        applyBtn.disabled = true;
+        promoMsg.textContent = `ใช้ส่วนลดจากโค้ด ${order.appliedPromo} เรียบร้อย (-฿${order.discountAmount.toFixed(2)})`;
+        promoMsg.style.color = 'var(--accent-green)';
+        promoMsg.style.display = 'block';
+      }
+
       bookingSuccessModal.classList.add('show');
       updateNavbar();
     }
+
+    // Apply promo code in Booking Success Modal
+    const btnApplySuccessPromo = document.getElementById('btnApplySuccessPromo');
+    btnApplySuccessPromo.addEventListener('click', () => {
+      const code = document.getElementById('successPromoCodeInput').value.trim();
+      const promoMsg = document.getElementById('successPromoMessage');
+      
+      if (!code) {
+        promoMsg.textContent = '❌ กรุณากรอกรหัสส่วนลด';
+        promoMsg.style.color = 'var(--accent-red)';
+        promoMsg.style.display = 'block';
+        return;
+      }
+      
+      try {
+        const result = DB.applyPromoToOrder(currentSuccessOrderId, code);
+        
+        // Success
+        promoMsg.textContent = `✅ ส่วนลดจากโค้ด ${result.code}: ${result.label} (-฿${result.discount.toFixed(2)})`;
+        promoMsg.style.color = 'var(--accent-green)';
+        promoMsg.style.display = 'block';
+        
+        // Update display price
+        successPriceText.textContent = `${result.finalPrice.toFixed(2)} ฿`;
+        
+        // Re-generate PromptPay QR Code with discounted price
+        document.getElementById('successPromptPayQR').src = DB.getPromptPayQR(result.finalPrice);
+        
+        // Disable fields so they can't double-apply
+        document.getElementById('successPromoCodeInput').disabled = true;
+        btnApplySuccessPromo.disabled = true;
+        
+        alert(`✅ ใช้โค้ดลดราคาสำเร็จ! ยอดรวมใหม่คือ ฿${result.finalPrice.toFixed(2)} ยอดโอนใน QR Code อัปเดตเรียบร้อยแล้วครับ`);
+      } catch (err) {
+        promoMsg.textContent = `❌ ${err.message}`;
+        promoMsg.style.color = 'var(--accent-red)';
+        promoMsg.style.display = 'block';
+      }
+    });
 
     function closeSuccessModal() {
       bookingSuccessModal.classList.remove('show');

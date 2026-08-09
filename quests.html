@@ -262,6 +262,7 @@
     <ul class="nav-links" id="navLinks">
       <li><a href="home.html" class="nav-link">หน้าแรก</a></li>
       <li><a href="menu.html" class="nav-link">เมนูน้ำปั่น</a></li>
+      <li><a href="lab.html" class="nav-link">Smoothie Lab 🧪</a></li>
       <li><a href="loyalty.html" class="nav-link">สะสมแต้ม</a></li>
       <li><a href="rewards.html" class="nav-link">รางวัลของฉัน</a></li>
       <li><a href="quests.html" class="nav-link active">วงล้อ & เควสต์</a></li>
@@ -615,6 +616,14 @@
       checkLogin();
       renderCheckin();
       drawWheel();
+      renderQuests();
+      renderBadges();
+    });
+
+    // Sync other tabs
+    window.addEventListener('storage', () => {
+      checkLogin();
+      renderCheckin();
       renderQuests();
       renderBadges();
     });

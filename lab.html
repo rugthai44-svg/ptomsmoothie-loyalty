@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smoothie Lab 🧪 - ร้านน้ำปั่นพี่ต้อม</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Smoothie Lab Custom Styles */
+    .lab-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 30px;
+      margin-top: 20px;
+    }
+    @media (max-width: 900px) {
+      .lab-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Blender Visualization Styles */
+    .blender-card {
+      text-align: center;
+      position: sticky;
+      top: 90px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .blender-outer {
+      width: 200px;
+      height: 360px;
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .blender-cup {
+      width: 130px;
+      height: 240px;
+      border: 4px solid rgba(0, 240, 255, 0.4);
+      border-bottom: 8px solid rgba(0, 240, 255, 0.6);
+      border-radius: 8px 8px 30px 30px;
+      margin: 0 auto;
+      position: relative;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(2px);
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.08);
+    }
+    .blender-cup::before {
+      /* Measurement markings */
+      content: '- 600ml\n- 400ml\n- 200ml';
+      white-space: pre-wrap;
+      position: absolute;
+      left: 10px;
+      top: 30px;
+      color: rgba(0, 240, 255, 0.4);
+      font-size: 0.62rem;
+      font-family: monospace;
+      text-align: left;
+      line-height: 2.8;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .blender-handle {
+      width: 40px;
+      height: 120px;
+      border: 4px solid rgba(0, 240, 255, 0.4);
+      border-left: none;
+      border-radius: 0 20px 20px 0;
+      position: absolute;
+      right: 17px;
+      top: 50px;
+      pointer-events: none;
+    }
+    .blender-liquid {
+      width: 100%;
+      height: 0%;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      transition: height 0.5s ease, background 1.5s ease;
+      background: transparent;
+      z-index: 2;
+    }
+    .blender-lid {
+      width: 140px;
+      height: 12px;
+      background: #121e33;
+      border: 2px solid var(--accent-cyan);
+      border-radius: 6px 6px 2px 2px;
+      margin: 0 auto -2px;
+      position: relative;
+      z-index: 10;
+    }
+    .blender-base {
+      width: 160px;
+      height: 90px;
+      background: linear-gradient(180deg, #1c2b46 0%, #0c1322 100%);
+      border: 2px solid var(--accent-cyan);
+      border-radius: 12px 12px 6px 6px;
+      margin: -2px auto 0;
+      position: relative;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .blender-button {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--accent-red);
+      border: 2px solid #fff;
+      box-shadow: 0 0 8px var(--accent-red);
+      cursor: pointer;
+      margin-top: 15px;
+      transition: all 0.2s ease;
+    }
+    .blender-button.active {
+      background: var(--accent-green);
+      box-shadow: 0 0 15px var(--accent-green);
+      transform: scale(0.9);
+    }
+    
+    /* Blending Shaking Animation */
+    @keyframes shake {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      10% { transform: translate(-2px, -1px) rotate(-0.5deg); }
+      20% { transform: translate(-1px, 2px) rotate(1deg); }
+      30% { transform: translate(3px, 1px) rotate(-1deg); }
+      40% { transform: translate(-1px, -1px) rotate(1deg); }
+      50% { transform: translate(2px, 2px) rotate(0deg); }
+      60% { transform: translate(-2px, 1px) rotate(-1deg); }
+      70% { transform: translate(1px, -2px) rotate(0.5deg); }
+      80% { transform: translate(-1px, 1px) rotate(1deg); }
+      90% { transform: translate(2px, -1px) rotate(-0.5deg); }
+    }
+    .blender-outer.shaking {
+      animation: shake 0.15s infinite;
+    }
+
+    /* Blade Spinning Animation */
+    .blender-blade {
+      width: 50px;
+      height: 12px;
+      position: absolute;
+      bottom: 8px;
+      left: calc(50% - 25px);
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 50%;
+      z-index: 4;
+      pointer-events: none;
+      transform-origin: center;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg) scaleY(0.4); }
+      100% { transform: rotate(3600deg) scaleY(0.4); }
+    }
+    .blender-blade.spinning {
+      animation: spin 2.5s cubic-bezier(0.15, 0.85, 0.35, 1) infinite;
+    }
+
+    /* Ingredients UI Control Panel */
+    .tab-container {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      border-radius: 20px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-sub);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .tab-btn.active {
+      background: rgba(0, 240, 255, 0.15);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    .ingredient-section {
+      display: none;
+    }
+    .ingredient-section.active {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 12px;
+    }
+
+    .ingredient-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    .ingredient-card:hover {
+      border-color: rgba(0, 240, 255, 0.4);
+      transform: translateY(-2px);
+    }
+    .ingredient-card.active {
+      background: rgba(0, 240, 255, 0.1);
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.15);
+    }
+    .ingredient-emoji {
+      font-size: 2rem;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .ingredient-name {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: #fff;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .ingredient-price {
+      font-size: 0.75rem;
+      color: var(--accent-green);
+      font-weight: 700;
+    }
+    .ingredient-tag {
+      position: absolute;
+      top: -6px; right: -6px;
+      background: var(--accent-cyan);
+      color: #000;
+      font-size: 0.6rem;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 8px;
+      text-transform: uppercase;
+      display: none;
+    }
+    .ingredient-card.active .ingredient-tag {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="home.html" class="nav-logo">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 2c1.2 0 2.3.4 3.2 1.2l-1.4 1.4C13.2 4.2 12.6 4 12 4c-3.9 0-7 3.1-7 7 0 2.5 1.3 4.7 3.2 6H5.4c-1.9-1.3-3.2-3.5-3.2-6 0-5 4-9 9-9zm0 18c-3.9 0-7-3.1-7-7H3c0 5 4 9 9 9s9-4 9-9h-2c0 3.9-3.1 7-7 7zm5.2-13.8l-1.4 1.4c.8.9 1.2 2 1.2 3.2v5.4c0 1.9-1.3 3.5-3.2 4.8v2.1c3.1-1.3 5.2-4.1 5.2-7.5V11.4c0-1.8-.7-3.5-1.8-4.8zM12 7c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4z"/>
+      </svg>
+      <span>P'TOM SMOOTHIE</span>
+    </a>
+    
+    <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+
+    <ul class="nav-links" id="navLinks">
+      <li><a href="home.html" class="nav-link">หน้าแรก</a></li>
+      <li><a href="menu.html" class="nav-link">เมนูน้ำปั่น</a></li>
+      <li><a href="lab.html" class="nav-link active">Smoothie Lab 🧪</a></li>
+      <li><a href="loyalty.html" class="nav-link">สะสมแต้ม</a></li>
+      <li><a href="rewards.html" class="nav-link">รางวัลของฉัน</a></li>
+      <li><a href="quests.html" class="nav-link">วงล้อ & เควสต์</a></li>
+      <li><a href="profile.html" class="nav-link">โปรไฟล์</a></li>
+    </ul>
+
+    <div class="nav-user-info">
+      <div class="user-badge">
+        <span id="navRankEmoji">🥉</span>
+        <span id="navUserPoints" class="user-pts">0 แต้ม</span>
+      </div>
+      <button class="btn btn-secondary" onclick="logoutUser()" style="padding: 6px 12px; font-size: 0.85rem;">ออกจากระบบ</button>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <main style="max-width: 1200px; margin: 0 auto; padding: 30px 24px 60px;">
+    
+    <!-- Title Section -->
+    <div style="text-align: center; margin-bottom: 30px;">
+      <h2 style="font-size: 2rem; font-weight: 800; margin-bottom: 10px;">🧪 Smoothie Lab ห้องลองปั่นสูตรพิเศษ</h2>
+      <p style="color: var(--text-sub); max-width: 700px; margin: 0 auto; font-size: 0.95rem;">
+        เลือกเบสของเครื่องดื่ม ผลไม้สด ผักสารอาหาร ความหวาน และบูสเตอร์ท็อปปิ้ง เพื่อปั่นสมูทตี้สูตรพิเศษเฉพาะตัวคุณเอง!
+      </p>
+    </div>
+
+    <!-- Lab Layout -->
+    <div class="lab-grid">
+      
+      <!-- Left Column: Blender & Order Summary -->
+      <section class="glass-card blender-card" style="height: fit-content; padding: 24px;">
+        <h3 style="font-weight: 800; font-size: 1.15rem; color: #fff; margin-bottom: 20px;">แก้วปั่นจำลอง ⚗️</h3>
+        
+        <!-- Blender -->
+        <div class="blender-outer" id="blenderContainer">
+          <div class="blender-lid"></div>
+          <div class="blender-cup">
+            <!-- Layers of Liquids will be inside this -->
+            <div class="blender-liquid" id="blenderLiquid"></div>
+            <div class="blender-blade" id="blenderBlade"></div>
+          </div>
+          <div class="blender-handle"></div>
+          <div class="blender-base">
+            <span style="font-size: 0.65rem; color: var(--text-sub); text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">P'TOM BLENDER</span>
+            <div class="blender-button" id="blendBtn" title="คลิกเพื่อปั่นสมูทตี้"></div>
+            <span id="blendButtonText" style="font-size: 0.55rem; color: var(--accent-cyan); font-weight: bold; margin-top: 4px;">START</span>
+          </div>
+        </div>
+
+        <!-- Custom Naming -->
+        <div style="width: 100%; text-align: left; margin-bottom: 20px;">
+          <label class="form-label" for="customBlendName">ตั้งชื่อสูตรสมูทตี้ของคุณ:</label>
+          <input type="text" id="customBlendName" class="form-input" placeholder="เช่น มะม่วงฟิตเนสบูสเตอร์" style="padding: 10px 12px; font-size: 0.9rem;">
+        </div>
+
+        <!-- Price Details -->
+        <div style="width: 100%; border-top: 1px dashed var(--border-color); padding-top: 16px; margin-bottom: 20px; text-align: left;">
+          <h4 style="font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 8px;">ส่วนผสมที่เลือก:</h4>
+          <ul id="selectedIngredientsList" style="font-size: 0.8rem; color: var(--text-sub); padding-left: 20px; line-height: 1.5; margin-bottom: 12px; max-height: 110px; overflow-y: auto;">
+            <li>(ยังไม่ได้เลือกวัตถุดิบ)</li>
+          </ul>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.85rem; color: var(--text-sub);">ยอดชำระแก้วนี้:</span>
+            <strong class="neon-text-green" style="font-size: 1.35rem;" id="labTotalPrice">40.00 ฿</strong>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="btnBookCustomDrink" style="width: 100%; padding: 12px 24px;" disabled>
+          🗓️ จองคิวแก้วปั่นพิเศษนี้
+        </button>
+      </section>
+
+      <!-- Right Column: Ingredient Selection -->
+      <section class="glass-card" style="padding: 24px;">
+        <h3 style="font-weight: 800; font-size: 1.15rem; color: #fff; margin-bottom: 16px;">เลือกวัตถุดิบปั่นสมูทตี้ 🍏</h3>
+        
+        <!-- Category Tabs -->
+        <div class="tab-container" id="categoryTabs">
+          <button class="tab-btn active" onclick="switchCategory('bases', this)">🥛 1. เบสน้ำปั่น</button>
+          <button class="tab-btn" onclick="switchCategory('fruits', this)">🥭 2. ผลไม้สด</button>
+          <button class="tab-btn" onclick="switchCategory('greens', this)">🌿 3. ผักใบเขียว</button>
+          <button class="tab-btn" onclick="switchCategory('sweeteners', this)">🍯 4. ความหวาน</button>
+          <button class="tab-btn" onclick="switchCategory('boosters', this)">💪 5. บูสเตอร์/ท็อปปิ้ง</button>
+        </div>
+
+        <!-- Section List -->
+        <div id="ingredientsSelectionContainer">
+          
+          <!-- BASES -->
+          <div class="ingredient-section active" id="sec-bases">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <!-- FRUITS -->
+          <div class="ingredient-section" id="sec-fruits">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <!-- GREENS -->
+          <div class="ingredient-section" id="sec-greens">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <!-- SWEETENERS -->
+          <div class="ingredient-section" id="sec-sweeteners">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <!-- BOOSTERS -->
+          <div class="ingredient-section" id="sec-boosters">
+            <!-- Rendered dynamically -->
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- Custom Booking Setup Modal -->
+  <div class="booking-modal" id="customBookingModal">
+    <div class="glass-card booking-card">
+      <h3 style="font-size: 1.3rem; font-weight: 800; margin-bottom: 12px; color: #fff; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;" id="customBookTitle">สั่งจองแก้วปั่นสูตรพิเศษ</h3>
+      <p id="customBookDesc" style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 20px;"></p>
+
+      <!-- Booking pickup time -->
+      <div style="margin-bottom: 20px;">
+        <label class="form-label" for="pickupTimeSelect">เวลานัดรับสินค้าหน้าร้าน:</label>
+        <select class="form-input" id="pickupTimeSelect" onchange="toggleCustomTime()" style="font-size: 0.95rem;">
+          <option value="อีก 15 นาที">อีก 15 นาที</option>
+          <option value="อีก 30 นาที">อีก 30 นาที</option>
+          <option value="อีก 1 ชั่วโมง">อีก 1 ชั่วโมง</option>
+          <option value="custom">กำหนดเวลาเอง...</option>
+        </select>
+        <input class="form-input" type="time" id="customTimeInput" style="display: none; margin-top: 10px;">
+      </div>
+
+      <!-- Notes input -->
+      <div style="margin-bottom: 24px;">
+        <label class="form-label" for="bookingNotesInput">โน้ตคำสั่งพิเศษเพิ่มเติม:</label>
+        <input class="form-input" type="text" id="bookingNotesInput" placeholder="เช่น แยกน้ำแข็ง, หวานธรรมชาติ ฯลฯ">
+      </div>
+
+      <!-- Checkout Summary -->
+      <div style="border-top: 1px dashed var(--border-color); padding-top: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span style="font-size: 0.85rem; color: var(--text-sub);">แต้มที่จะได้รับหลังอนุมัติสลิป:</span><br>
+          <span class="neon-text-cyan" style="font-weight: 800; font-size: 1.1rem;">+10 แต้มสะสม</span>
+        </div>
+        <div style="text-align: right;">
+          <span style="font-size: 0.85rem; color: var(--text-sub);">ยอดชำระทั้งหมด:</span><br>
+          <strong class="neon-text-green" style="font-size: 1.4rem;" id="modalTotalPrice">0.00 ฿</strong>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button class="btn btn-secondary" onclick="closeCustomBookingModal()">ยกเลิก</button>
+        <button class="btn btn-primary" id="btnConfirmCustomBooking" style="padding: 10px 24px;">Confirm จองสูตรพิเศษ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Booking Success Modal -->
+  <div class="booking-modal" id="bookingSuccessModal">
+    <div class="glass-card booking-success-card" style="max-width: 480px; width: 90%; max-height: 90vh; overflow-y: auto;">
+      <span style="font-size: 3.5rem;">🎉</span>
+      <h2 style="font-size: 1.6rem; font-weight: 800; color: var(--accent-green); margin-top: 10px;">สั่งจองเมนูสำเร็จ!</h2>
+      <p style="color: var(--text-sub); font-size: 0.85rem; margin-top: 4px;">กรุณาแสกน QR Code เพื่อชำระเงินและอัปโหลดภาพสลิปเพื่อยืนยันออเดอร์สะสมแต้ม</p>
+
+      <!-- PromptPay Mock QR Code -->
+      <div style="background: #fff; padding: 12px; border-radius: 12px; display: inline-block; margin: 16px 0 10px; border: 1px solid var(--border-color); text-align: center;">
+        <img id="successPromptPayQR" src="" style="width: 140px; height: 140px; display: block; margin: 0 auto; border: none;">
+        <div style="color: #003b66; font-size: 0.72rem; font-weight: bold; margin-top: 4px; font-family: sans-serif;">PromptPay: พี่ต้อม สตรอว์เบอร์รี</div>
+      </div>
+
+      <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; margin: 10px 0; text-align: left; font-size: 0.85rem;">
+        <p style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color: var(--text-sub);">รหัสการจอง:</span>
+          <strong id="successOrderIdText" style="color: var(--accent-cyan);">ORD-XXXXX</strong>
+        </p>
+        <p style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color: var(--text-sub);">รายการจอง:</span>
+          <strong id="successItemsText" style="color: #fff; max-width: 200px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></strong>
+        </p>
+        <p style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color: var(--text-sub);">เวลานัดรับหน้าร้าน:</span>
+          <strong id="successTimeText" style="color: #fff;">อีก 15 นาที</strong>
+        </p>
+        <p style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-sub);">ยอดชำระเงิน:</span>
+          <strong id="successPriceText" style="color: var(--accent-green);">0.00 ฿</strong>
+        </p>
+      </div>
+
+      <!-- Discount Code Section in Success Modal -->
+      <div id="successPromoContainer" style="background: rgba(0, 240, 255, 0.02); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; margin: 10px 0; text-align: left;">
+        <label class="form-label" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; display: block; color: var(--accent-cyan);">🎟️ ใส่รหัสส่วนลด / คูปองเพิ่มเติม:</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="successPromoCodeInput" placeholder="เช่น TOM10, SWEET20 หรือ CPN-XXXXX" class="form-input" style="margin: 0; padding: 8px; font-size: 0.85rem; flex: 1;">
+          <button class="btn btn-primary" id="btnApplySuccessPromo" style="padding: 8px 16px; font-size: 0.85rem; white-space: nowrap;">ใช้โค้ด</button>
+        </div>
+        <div id="successPromoMessage" style="font-size: 0.8rem; margin-top: 6px; display: none;"></div>
+      </div>
+
+      <!-- Slip Upload Container in Success Modal -->
+      <div style="background: rgba(0, 240, 255, 0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; margin: 10px 0; text-align: left;">
+        <label class="form-label" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; display: block; color: var(--accent-cyan);">📤 อัปโหลดสลิปยืนยันการโอนเงิน:</label>
+        <input type="file" id="orderSlipFileInput" accept="image/*" class="form-input" style="padding: 6px; cursor: pointer; font-size: 0.8rem;">
+        <div id="orderSlipPreviewContainer" style="margin-top: 10px; text-align: center; display: none;">
+          <img id="orderSlipPreviewImage" src="" style="max-width: 100%; max-height: 100px; border: 1px solid var(--border-color); border-radius: 6px;">
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+        <button class="btn btn-primary" id="btnSubmitOrderSlip" style="width: 100%;" disabled>✅ ส่งสลิปชำระเงินและแจ้งโอน</button>
+        <button class="btn btn-secondary" onclick="closeSuccessModal()" style="width: 100%; font-size: 0.85rem;">ค่อยอัปโหลดภายหลัง (ประวัติในหน้าสะสมแต้ม)</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="db.js?v=4"></script>
+  <script>
+    // Authentication guard
+    let currentUser = DB.getCurrentUser();
+    if (!currentUser) {
+      window.location.href = 'login.html';
+    }
+
+    // Toggle Mobile Menu
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const navLinks = document.getElementById('navLinks');
+    mobileMenuBtn.addEventListener('click', () => {
+      navLinks.classList.toggle('show');
+    });
+
+    function logoutUser() {
+      DB.logout();
+      window.location.href = 'login.html';
+    }
+
+    // Refresh navbar values
+    function updateNavbar() {
+      currentUser = DB.getCurrentUser();
+      if (!currentUser) return;
+      const pts = currentUser.points;
+      const exp = currentUser.exp || 0;
+      const rankInfo = DB.getRank(exp);
+      document.getElementById('navRankEmoji').textContent = rankInfo.logo;
+      document.getElementById('navUserPoints').textContent = `${pts} แต้ม (${exp} EXP)`;
+    }
+    updateNavbar();
+
+    // Ingredients Database definitions - loaded dynamically from DB
+    const allDbIngredients = DB.getIngredients();
+    const ingredients = {
+      bases: allDbIngredients.filter(x => x.category === 'bases'),
+      fruits: allDbIngredients.filter(x => x.category === 'fruits'),
+      greens: allDbIngredients.filter(x => x.category === 'greens'),
+      sweeteners: allDbIngredients.filter(x => x.category === 'sweeteners'),
+      boosters: allDbIngredients.filter(x => x.category === 'boosters')
+    };
+
+    // Keep track of current selections
+    let selections = {
+      base: null,
+      fruits: [],
+      greens: [],
+      sweetener: null,
+      boosters: []
+    };
+
+    let isBlended = false;
+    let blendedColor = 'rgba(0, 240, 255, 0.1)';
+
+    // Switch tabs
+    function switchCategory(catId, btnElement) {
+      document.querySelectorAll('#categoryTabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+      btnElement.classList.add('active');
+
+      document.querySelectorAll('#ingredientsSelectionContainer .ingredient-section').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(`sec-${catId}`).classList.add('active');
+    }
+
+    // Render Ingredients cards dynamically
+    function renderIngredientSelector() {
+      Object.keys(ingredients).forEach(category => {
+        const container = document.getElementById(`sec-${category}`);
+        container.innerHTML = '';
+
+        ingredients[category].forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'ingredient-card';
+          card.setAttribute('data-id', item.id);
+          
+          if (item.is_out_of_stock) {
+            card.style.opacity = '0.4';
+            card.style.cursor = 'not-allowed';
+          }
+
+          const priceDisplay = item.is_out_of_stock 
+            ? `<span class="ingredient-price" style="color: var(--accent-red); font-weight: bold;">❌ หมด</span>` 
+            : `<span class="ingredient-price">${item.price > 0 ? '+' + item.price + '฿' : 'ฟรี'}</span>`;
+
+          card.innerHTML = `
+            <span class="ingredient-tag">✓</span>
+            <span class="ingredient-emoji">${item.emoji}</span>
+            <span class="ingredient-name">${item.name}</span>
+            ${priceDisplay}
+          `;
+
+          // Handle click selection
+          card.addEventListener('click', () => {
+            if (item.is_out_of_stock) {
+              alert(`ขออภัยด้วยครับ ขณะนี้วัตถุดิบ [${item.name}] หมดชั่วคราว ไม่สามารถเลือกได้ในขณะนี้ครับ`);
+              return;
+            }
+            toggleIngredient(category, item);
+          });
+
+          container.appendChild(card);
+        });
+      });
+    }
+
+    function toggleIngredient(category, item) {
+      const card = document.querySelector(`[data-id="${item.id}"]`);
+      
+      // Reset blended status if ingredients change
+      isBlended = false;
+      document.getElementById('btnBookCustomDrink').disabled = true;
+      document.getElementById('blendBtn').classList.remove('active');
+      document.getElementById('blendButtonText').textContent = 'START';
+      document.getElementById('blendButtonText').style.color = 'var(--accent-cyan)';
+
+      // Map plural category to singular selections keys
+      let selectionKey = category;
+      if (category === 'bases') selectionKey = 'base';
+      if (category === 'sweeteners') selectionKey = 'sweetener';
+
+      if (selectionKey === 'base') {
+        // Base is single selection
+        if (selections.base && selections.base.id === item.id) {
+          selections.base = null;
+          card.classList.remove('active');
+        } else {
+          if (selections.base) {
+            const activeCard = document.querySelector(`[data-id="${selections.base.id}"]`);
+            if (activeCard) activeCard.classList.remove('active');
+          }
+          selections.base = item;
+          card.classList.add('active');
+        }
+      } else if (selectionKey === 'sweetener') {
+        // Sweetener is single selection
+        if (selections.sweetener && selections.sweetener.id === item.id) {
+          selections.sweetener = null;
+          card.classList.remove('active');
+        } else {
+          if (selections.sweetener) {
+            const activeCard = document.querySelector(`[data-id="${selections.sweetener.id}"]`);
+            if (activeCard) activeCard.classList.remove('active');
+          }
+          selections.sweetener = item;
+          card.classList.add('active');
+        }
+      } else {
+        // Array selection (fruits, greens, boosters)
+        const idx = selections[selectionKey].findIndex(x => x.id === item.id);
+        if (idx === -1) {
+          selections[selectionKey].push(item);
+          card.classList.add('active');
+        } else {
+          selections[selectionKey].splice(idx, 1);
+          card.classList.remove('active');
+        }
+      }
+
+      updateBlenderUI();
+    }
+
+    // Recalculate price and update liquid layers in blender
+    function updateBlenderUI() {
+      let basePrice = 40; // Base starting price
+      let total = basePrice;
+      const listContainer = document.getElementById('selectedIngredientsList');
+      listContainer.innerHTML = '';
+
+      let selectedList = [];
+
+      // Base
+      if (selections.base) {
+        total += selections.base.price;
+        selectedList.push({ name: `${selections.base.emoji} ${selections.base.name}`, price: selections.base.price });
+      } else {
+        // Default base is Milk
+        const defaultBase = ingredients.bases[0];
+        selectedList.push({ name: `🥛 นมสด (ปกติ)`, price: 0 });
+      }
+
+      // Sweetener
+      if (selections.sweetener) {
+        total += selections.sweetener.price;
+        selectedList.push({ name: `${selections.sweetener.emoji} ความหวาน: ${selections.sweetener.name}`, price: selections.sweetener.price });
+      } else {
+        selectedList.push({ name: `🍬 หวานปกติ`, price: 0 });
+      }
+
+      // Fruits
+      selections.fruits.forEach(f => {
+        total += f.price;
+        selectedList.push({ name: `${f.emoji} ${f.name}`, price: f.price });
+      });
+
+      // Greens
+      selections.greens.forEach(g => {
+        total += g.price;
+        selectedList.push({ name: `${g.emoji} ${g.name}`, price: g.price });
+      });
+
+      // Boosters
+      selections.boosters.forEach(b => {
+        total += b.price;
+        selectedList.push({ name: `${b.emoji} ${b.name}`, price: b.price });
+      });
+
+      // Render Selected Items
+      selectedList.forEach(item => {
+        const li = document.createElement('li');
+        li.innerHTML = `${item.name} <span style="color: var(--accent-green); font-weight:bold;">(+${item.price}฿)</span>`;
+        listContainer.appendChild(li);
+      });
+
+      if (selectedList.length === 0 || (selectedList.length === 2 && !selections.base && !selections.sweetener && selections.fruits.length === 0 && selections.greens.length === 0)) {
+        listContainer.innerHTML = '<li>(ยังไม่ได้เลือกผลไม้/ผักหลัก)</li>';
+      }
+
+      // Update Price Text
+      document.getElementById('labTotalPrice').textContent = `${total.toFixed(2)} ฿`;
+
+      // Update liquid layers visualization inside blender cup
+      const liquidElement = document.getElementById('blenderLiquid');
+      
+      // Calculate active color list
+      let colors = [];
+      if (selections.base) colors.push(selections.base.color);
+      else if (ingredients.bases && ingredients.bases.length > 0) colors.push(ingredients.bases[0].color);
+      else colors.push('rgba(255, 255, 255, 0.85)');
+      
+      selections.fruits.forEach(f => colors.push(f.color));
+      selections.greens.forEach(g => colors.push(g.color));
+      if (selections.sweetener) colors.push(selections.sweetener.color);
+      selections.boosters.forEach(b => colors.push(b.color));
+
+      // Calculate total amount of layers
+      const totalLayers = colors.length;
+      if (totalLayers === 0 || (selections.fruits.length === 0 && selections.greens.length === 0)) {
+        liquidElement.style.height = '0%';
+        liquidElement.style.background = 'transparent';
+      } else {
+        // Map layers as linear gradient layers
+        let heightPct = Math.min(95, 20 + totalLayers * 15); // growing height
+        liquidElement.style.height = `${heightPct}%`;
+        
+        let gradVal = '';
+        if (totalLayers === 1) {
+          gradVal = colors[0];
+        } else {
+          // Construct layered gradient bands
+          let bands = [];
+          const step = 100 / totalLayers;
+          colors.forEach((col, idx) => {
+            bands.push(`${col} ${idx * step}%`);
+            bands.push(`${col} ${(idx + 1) * step}%`);
+          });
+          gradVal = `linear-gradient(to top, ${bands.join(', ')})`;
+        }
+        liquidElement.style.background = gradVal;
+      }
+    }
+
+    // Blend Action (mixing animation)
+    const blendBtn = document.getElementById('blendBtn');
+    blendBtn.addEventListener('click', () => {
+      if (selections.fruits.length === 0 && selections.greens.length === 0) {
+        alert('กรุณาเลือกผลไม้สดหรือผักใบเขียวอย่างน้อย 1 ชนิดเพื่อลงโถปั่นครับ!');
+        return;
+      }
+      if (isBlended) return;
+
+      const blenderContainer = document.getElementById('blenderContainer');
+      const blenderBlade = document.getElementById('blenderBlade');
+      const liquidElement = document.getElementById('blenderLiquid');
+      const blendButtonText = document.getElementById('blendButtonText');
+
+      // Play shake animation
+      blenderContainer.classList.add('shaking');
+      blenderBlade.classList.add('spinning');
+      blendBtn.classList.add('active');
+      blendButtonText.textContent = 'MIXING';
+      blendButtonText.style.color = 'var(--accent-green)';
+
+      // Perform color blending calculation (Average RGB)
+      let colors = [];
+      if (selections.base) colors.push(selections.base.color);
+      else if (ingredients.bases && ingredients.bases.length > 0) colors.push(ingredients.bases[0].color);
+      else colors.push('rgba(255, 255, 255, 0.85)');
+      selections.fruits.forEach(f => colors.push(f.color));
+      selections.greens.forEach(g => colors.push(g.color));
+      if (selections.sweetener) colors.push(selections.sweetener.color);
+      selections.boosters.forEach(b => colors.push(b.color));
+
+      let rSum = 0, gSum = 0, bSum = 0, aSum = 0;
+      colors.forEach(col => {
+        // Parse rgba
+        const vals = col.replace(/[rgba() ]/g, '').split(',');
+        rSum += parseInt(vals[0], 10);
+        gSum += parseInt(vals[1], 10);
+        bSum += parseInt(vals[2], 10);
+        aSum += parseFloat(vals[3] || 1);
+      });
+
+      const avgR = Math.round(rSum / colors.length);
+      const avgG = Math.round(gSum / colors.length);
+      const avgB = Math.round(bSum / colors.length);
+      const avgA = Math.min(1, (aSum / colors.length) + 0.1); // slightly make opaque
+
+      blendedColor = `rgba(${avgR}, ${avgG}, ${avgB}, ${avgA})`;
+
+      setTimeout(() => {
+        // Blending finished
+        blenderContainer.classList.remove('shaking');
+        blenderBlade.classList.remove('spinning');
+        blendButtonText.textContent = 'DONE';
+        
+        // Transform visual color into unified blended smoothie
+        liquidElement.style.background = `linear-gradient(to top, rgba(${Math.max(0, avgR-20)}, ${Math.max(0, avgG-20)}, ${Math.max(0, avgB-20)}, ${avgA}) 0%, ${blendedColor} 100%)`;
+        
+        isBlended = true;
+        document.getElementById('btnBookCustomDrink').disabled = false;
+        
+        // Micro beep sound
+        try {
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.3);
+          gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+          osc.start();
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+          osc.stop(audioCtx.currentTime + 0.3);
+        } catch (e) {}
+        
+      }, 2500);
+    });
+
+    // --- BOOKING LOGIC FOR CUSTOM SMOOTHIE ---
+    const customBookingModal = document.getElementById('customBookingModal');
+    const customBookTitle = document.getElementById('customBookTitle');
+    const customBookDesc = document.getElementById('customBookDesc');
+    const modalTotalPrice = document.getElementById('modalTotalPrice');
+    const pickupTimeSelect = document.getElementById('pickupTimeSelect');
+    const customTimeInput = document.getElementById('customTimeInput');
+    const bookingNotesInput = document.getElementById('bookingNotesInput');
+    const btnBookCustomDrink = document.getElementById('btnBookCustomDrink');
+
+    btnBookCustomDrink.addEventListener('click', () => {
+      if (!isBlended) return;
+
+      const nameInput = document.getElementById('customBlendName');
+      const customName = nameInput.value.trim() || 'สูตรลับปั่นเองตามใจฉัน 🧪';
+      
+      // Calculate ingredients list string
+      let ingList = [];
+      if (selections.base) ingList.push(selections.base.name);
+      else ingList.push(ingredients.bases[0].name);
+
+      selections.fruits.forEach(f => ingList.push(f.name));
+      selections.greens.forEach(g => ingList.push(g.name));
+      
+      if (selections.sweetener) ingList.push(selections.sweetener.name);
+      else ingList.push('หวานปกติ');
+
+      selections.boosters.forEach(b => ingList.push(b.name));
+
+      const detailsStr = `เบส: ${ingList.join(', ')}`;
+      customBookTitle.textContent = customName;
+      customBookDesc.textContent = `ขวดโหลสูตรพิเศษของคุณประกอบไปด้วย: ${detailsStr}`;
+      
+      // Price calculation
+      let total = 40;
+      if (selections.base) total += selections.base.price;
+      if (selections.sweetener) total += selections.sweetener.price;
+      selections.fruits.forEach(f => total += f.price);
+      selections.greens.forEach(g => total += g.price);
+      selections.boosters.forEach(b => total += b.price);
+
+      modalTotalPrice.textContent = `${total.toFixed(2)} ฿`;
+      
+      pickupTimeSelect.value = 'อีก 15 นาที';
+      customTimeInput.style.display = 'none';
+      customTimeInput.value = '';
+      bookingNotesInput.value = '';
+
+      customBookingModal.classList.add('show');
+    });
+
+    function closeCustomBookingModal() {
+      customBookingModal.classList.remove('show');
+    }
+
+    function toggleCustomTime() {
+      if (pickupTimeSelect.value === 'custom') {
+        customTimeInput.style.display = 'block';
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + 15);
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        customTimeInput.value = `${hours}:${minutes}`;
+      } else {
+        customTimeInput.style.display = 'none';
+      }
+    }
+
+    // Confirm booking submission
+    const btnConfirmCustomBooking = document.getElementById('btnConfirmCustomBooking');
+    btnConfirmCustomBooking.addEventListener('click', () => {
+      btnConfirmCustomBooking.disabled = true;
+
+      try {
+        const nameInput = document.getElementById('customBlendName');
+        const customName = nameInput.value.trim() || 'สูตรลับปั่นเองตามใจฉัน 🧪';
+
+        let ingList = [];
+        if (selections.base) ingList.push(selections.base.name);
+        else ingList.push(ingredients.bases[0].name);
+
+        selections.fruits.forEach(f => ingList.push(f.name));
+        selections.greens.forEach(g => ingList.push(g.name));
+
+        if (selections.sweetener) ingList.push(selections.sweetener.name);
+        else ingList.push('หวานปกติ');
+
+        selections.boosters.forEach(b => ingList.push(b.name));
+
+        const fullItemDetails = `${customName} [เบส: ${ingList.join(', ')}]`;
+
+        let total = 40;
+        if (selections.base) total += selections.base.price;
+        if (selections.sweetener) total += selections.sweetener.price;
+        selections.fruits.forEach(f => total += f.price);
+        selections.greens.forEach(g => total += g.price);
+        selections.boosters.forEach(b => total += b.price);
+
+        // Calculate time
+        let pickupTime = pickupTimeSelect.value;
+        if (pickupTime === 'custom') {
+          pickupTime = 'นัดรับเวลา ' + customTimeInput.value;
+        }
+
+        const notes = bookingNotesInput.value.trim();
+
+        // Submit order
+        const order = DB.submitOrder(
+          currentUser.username, 
+          [fullItemDetails], 
+          total, 
+          10, // awards +10 points per drink
+          pickupTime, 
+          notes,
+          false,
+          null,
+          total,
+          '',
+          0
+        );
+
+        // Close custom booking modal and open success modal
+        closeCustomBookingModal();
+        openSuccessModal(order, fullItemDetails);
+      } catch (err) {
+        alert('เกิดข้อผิดพลาดในการสั่งจอง: ' + err.message);
+      } finally {
+        btnConfirmCustomBooking.disabled = false;
+      }
+    });
+
+    // --- SUCCESS MODAL LOGIC ---
+    const bookingSuccessModal = document.getElementById('bookingSuccessModal');
+    const successOrderIdText = document.getElementById('successOrderIdText');
+    const successItemsText = document.getElementById('successItemsText');
+    const successTimeText = document.getElementById('successTimeText');
+    const successPriceText = document.getElementById('successPriceText');
+    const orderSlipFileInput = document.getElementById('orderSlipFileInput');
+    const orderSlipPreviewContainer = document.getElementById('orderSlipPreviewContainer');
+    const orderSlipPreviewImage = document.getElementById('orderSlipPreviewImage');
+    const btnSubmitOrderSlip = document.getElementById('btnSubmitOrderSlip');
+
+    let currentSuccessOrderId = '';
+    let uploadedOrderPhotoData = '';
+
+    orderSlipFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          uploadedOrderPhotoData = evt.target.result;
+          orderSlipPreviewImage.src = uploadedOrderPhotoData;
+          orderSlipPreviewContainer.style.display = 'block';
+          btnSubmitOrderSlip.disabled = false;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        uploadedOrderPhotoData = '';
+        orderSlipPreviewContainer.style.display = 'none';
+        btnSubmitOrderSlip.disabled = true;
+      }
+    });
+
+    btnSubmitOrderSlip.addEventListener('click', async () => {
+      if (!uploadedOrderPhotoData || !currentSuccessOrderId) return;
+      btnSubmitOrderSlip.disabled = true;
+      const originalText = btnSubmitOrderSlip.textContent;
+      btnSubmitOrderSlip.textContent = '🔍 กำลังส่งตรวจสอบสลิปอัตโนมัติผ่าน EasySlip API...';
+      
+      try {
+        DB.uploadOrderSlip(currentSuccessOrderId, uploadedOrderPhotoData);
+        await DB.verifySlip(currentSuccessOrderId, uploadedOrderPhotoData);
+        
+        alert('✅ ระบบ EasySlip ยืนยันสลิปถูกต้องแล้ว!\nยอดเงินชำระครบถ้วน แต้มได้รับการอนุมัติและเปลี่ยนสถานะเป็น [กำลังเตรียมเครื่องดื่ม] สำเร็จ!');
+        closeSuccessModal();
+        window.location.href = 'loyalty.html'; // redirect to loyalty statement
+      } catch (err) {
+        alert('เกิดข้อผิดพลาดในการยืนยันสลิป: ' + err.message);
+        btnSubmitOrderSlip.textContent = originalText;
+        btnSubmitOrderSlip.disabled = false;
+      }
+    });
+
+    function openSuccessModal(order, itemTitle) {
+      currentSuccessOrderId = order.id;
+      successOrderIdText.textContent = order.id;
+      successItemsText.textContent = itemTitle;
+      successTimeText.textContent = order.pickupTime;
+      successPriceText.textContent = `${order.totalPrice.toFixed(2)} ฿`;
+      
+      // Load dynamic PromptPay QR code
+      document.getElementById('successPromptPayQR').src = DB.getPromptPayQR(order.totalPrice);
+      
+      // Reset slip upload inputs
+      orderSlipFileInput.value = '';
+      uploadedOrderPhotoData = '';
+      orderSlipPreviewContainer.style.display = 'none';
+      btnSubmitOrderSlip.disabled = true;
+
+      // Reset success modal promo inputs
+      const promoInput = document.getElementById('successPromoCodeInput');
+      const promoMsg = document.getElementById('successPromoMessage');
+      const applyBtn = document.getElementById('btnApplySuccessPromo');
+      
+      promoInput.value = '';
+      promoInput.disabled = false;
+      applyBtn.disabled = false;
+      promoMsg.style.display = 'none';
+      promoMsg.textContent = '';
+
+      if (order.appliedPromo) {
+        promoInput.value = order.appliedPromo;
+        promoInput.disabled = true;
+        applyBtn.disabled = true;
+        promoMsg.textContent = `ใช้ส่วนลดจากโค้ด ${order.appliedPromo} เรียบร้อย (-฿${order.discountAmount.toFixed(2)})`;
+        promoMsg.style.color = 'var(--accent-green)';
+        promoMsg.style.display = 'block';
+      }
+
+      bookingSuccessModal.classList.add('show');
+      updateNavbar();
+    }
+
+    // Apply promo code in Booking Success Modal
+    const btnApplySuccessPromo = document.getElementById('btnApplySuccessPromo');
+    btnApplySuccessPromo.addEventListener('click', () => {
+      const code = document.getElementById('successPromoCodeInput').value.trim();
+      const promoMsg = document.getElementById('successPromoMessage');
+      
+      if (!code) {
+        promoMsg.textContent = '❌ กรุณากรอกรหัสส่วนลด';
+        promoMsg.style.color = 'var(--accent-red)';
+        promoMsg.style.display = 'block';
+        return;
+      }
+      
+      try {
+        const result = DB.applyPromoToOrder(currentSuccessOrderId, code);
+        
+        // Success
+        promoMsg.textContent = `✅ ส่วนลดจากโค้ด ${result.code}: ${result.label} (-฿${result.discount.toFixed(2)})`;
+        promoMsg.style.color = 'var(--accent-green)';
+        promoMsg.style.display = 'block';
+        
+        // Update display price
+        successPriceText.textContent = `${result.finalPrice.toFixed(2)} ฿`;
+        
+        // Re-generate PromptPay QR Code with discounted price
+        document.getElementById('successPromptPayQR').src = DB.getPromptPayQR(result.finalPrice);
+        
+        // Disable fields so they can't double-apply
+        document.getElementById('successPromoCodeInput').disabled = true;
+        btnApplySuccessPromo.disabled = true;
+        
+        alert(`✅ ใช้โค้ดลดราคาสำเร็จ! ยอดรวมใหม่คือ ฿${result.finalPrice.toFixed(2)} ยอดโอนใน QR Code อัปเดตเรียบร้อยแล้วครับ`);
+      } catch (err) {
+        promoMsg.textContent = `❌ ${err.message}`;
+        promoMsg.style.color = 'var(--accent-red)';
+        promoMsg.style.display = 'block';
+      }
+    });
+
+    function closeSuccessModal() {
+      bookingSuccessModal.classList.remove('show');
+    }
+
+    // Initialize Page
+    renderIngredientSelector();
+    updateBlenderUI();
+  </script>
+</body>
+</html>

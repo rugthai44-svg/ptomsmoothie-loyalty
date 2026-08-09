@@ -52,6 +52,7 @@
     <ul class="nav-links" id="navLinks">
       <li><a href="home.html" class="nav-link">หน้าแรก</a></li>
       <li><a href="menu.html" class="nav-link">เมนูน้ำปั่น</a></li>
+      <li><a href="lab.html" class="nav-link">Smoothie Lab 🧪</a></li>
       <li><a href="loyalty.html" class="nav-link">สะสมแต้ม</a></li>
       <li><a href="rewards.html" class="nav-link active">รางวัลของฉัน</a></li>
       <li><a href="quests.html" class="nav-link">วงล้อ & เควสต์</a></li>
@@ -208,11 +209,22 @@
         } else {
           // Normal glass design
           slot.className = 'cup-slot';
+          
+          let promoLabel = '';
+          if (i === 5) promoLabel = '<span style="font-size: 0.55rem; color: var(--accent-cyan); display: block; margin-top: 2px; font-weight: 700;">โค้ดลด 5%</span>';
+          if (i === 9) promoLabel = '<span style="font-size: 0.55rem; color: var(--accent-cyan); display: block; margin-top: 2px; font-weight: 700;">โค้ดลด 10%</span>';
+
           if (i <= cupsFilled) {
             slot.className = 'cup-slot active';
-            slot.innerHTML = `🥤<span class="cup-number">${i}</span>`;
+            slot.innerHTML = `🥤<span class="cup-number">${i}</span>${promoLabel}`;
           } else {
-            slot.innerHTML = `⚫<span class="cup-number">${i}</span>`;
+            if (i === 5 || i === 9) {
+              slot.innerHTML = `🎟️<span class="cup-number" style="color: var(--accent-cyan);">${i}</span>${promoLabel}`;
+              slot.style.borderColor = 'rgba(0, 240, 255, 0.4)';
+              slot.style.boxShadow = '0 0 10px rgba(0, 240, 255, 0.1)';
+            } else {
+              slot.innerHTML = `⚫<span class="cup-number">${i}</span>`;
+            }
           }
         }
         cupsGrid.appendChild(slot);
