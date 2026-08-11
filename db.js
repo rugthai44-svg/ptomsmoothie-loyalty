@@ -1088,7 +1088,12 @@ const DB = {
     // 1. Check if it matches any user coupon ID (either UUID or CPN- prefix)
     if (username) {
       const coupons = this.getUserCoupons(username);
-      const coupon = coupons.find(c => c.id.toLowerCase() === cleanCode);
+      const coupon = coupons.find(c => {
+        const idLower = c.id.toLowerCase();
+        if (idLower === cleanCode) return true;
+        if (idLower.includes('-') && `cpn-${idLower.split('-')[0]}` === cleanCode) return true;
+        return false;
+      });
       
       if (coupon) {
         if (coupon.isUsed) {
