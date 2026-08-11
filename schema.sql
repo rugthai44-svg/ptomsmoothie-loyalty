@@ -192,11 +192,11 @@ INSERT INTO ptom_quests (id, title, description, target_amount, reward_points, r
 ('daily_checkin', 'เช็คอินประจำวัน', 'เปิดแอปและกดเช็คอินเพื่อรับคะแนนพิเศษสะสม', 1, 2, 10, 'daily', NULL),
 ('weekly_smoothie_5', 'นักดื่มตัวยงประจำสัปดาห์', 'สั่งซื้อน้ำปั่นครบ 5 แก้วภายในสัปดาห์นี้', 5, 15, 100, 'weekly', 'Monday'),
 ('achievement_first_order', 'จุดเริ่มต้นความอร่อย', 'สั่งซื้อเครื่องดื่มแก้วแรกสำเร็จ', 1, 5, 50, 'achievement', NULL),
-('achievement_radiant_rank', 'แรงค์สูงสุดของร้าน', 'ก้าวสู่แรงค์ Radiant (พี่ต้อมตัวจริง) ด้วยคะแนนสะสม 800 แต้ม', 800, 100, 500, 'achievement', NULL);
+('achievement_radiant_rank', 'แรงค์สูงสุดของร้าน', 'ก้าวสู่แรงค์ Radiant (ล้านน้ำปั่นตัวจริง) ด้วยคะแนนสะสม 800 แต้ม', 800, 100, 500, 'achievement', NULL);
 
 -- Badges
 INSERT INTO ptom_badges (id, title, description, icon, requirement_type, requirement_value) VALUES
 ('smoothie_lover', 'แฟนพันธุ์แท้น้ำปั่น', 'สั่งสมูทตี้รวม 5 แก้วขึ้นไป', '🥤', 'total_orders', 5),
 ('early_bird', 'ตื่นแต่เช้ามาดื่มปั่น', 'สั่งสมูทตี้ก่อนเวลา 10:00 น.', '🌅', 'early_orders', 1),
 ('big_spender', 'ราชาสายเปย์', 'มียอดซื้อสะสมเกิน 500 บาท', '💰', 'total_spend', 500),
-('radiant_champion', 'พี่ต้อมตัวจริง', 'เข้าสู่ระดับแรงค์ Radiant (แต้มสะสม 800 แต้ม)', '👑', 'points', 800);
+('radiant_champion', 'ล้านน้ำปั่นตัวจริง', 'เข้าสู่ระดับแรงค์ Radiant (แต้มสะสม 800 แต้ม)', '👑', 'points', 800);

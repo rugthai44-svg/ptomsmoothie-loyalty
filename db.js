@@ -409,7 +409,7 @@ async function syncFromSupabase() {
     localStorage.setItem('ptom_admin', JSON.stringify({
       email: 'admin@gmail.com',
       password: '1234',
-      fullName: 'พี่ต้อม เจ้าของร้าน'
+      fullName: 'เจ้าของร้านล้านน้ำปั่น'
     }));
   }
 
@@ -565,7 +565,7 @@ const DB = {
 
   // --- LOYALTY POINTS & RANKS (PHASE 1 & 2) ---
   getRank(points) {
-    if (points >= 800) return { name: 'Radiant (พี่ต้อมตัวจริง)', class: 'rank-radiant', logo: '💎', nextThreshold: Infinity };
+    if (points >= 800) return { name: 'Radiant (ล้านน้ำปั่นตัวจริง)', class: 'rank-radiant', logo: '💎', nextThreshold: Infinity };
     if (points >= 500) return { name: 'Platinum', class: 'rank-platinum', logo: '✨', nextThreshold: 800 };
     if (points >= 300) return { name: 'Gold', class: 'rank-gold', logo: '👑', nextThreshold: 500 };
     if (points >= 100) return { name: 'Silver', class: 'rank-silver', logo: '🥈', nextThreshold: 300 };
@@ -614,7 +614,7 @@ const DB = {
     if (oldRank !== newRank) {
       desc += ` เลื่อนระดับแรงค์เป็น ${newRank}!`;
       // Award achievement points
-      if (newRank === 'Radiant (พี่ต้อมตัวจริง)') {
+      if (newRank === 'Radiant (ล้านน้ำปั่นตัวจริง)') {
         this.updateQuestProgress(username, 'achievement_radiant_rank', 800);
       }
     }
@@ -713,7 +713,7 @@ const DB = {
 
   // --- SMART ORDERING & SLIP VERIFICATION (PHASE 1) ---
   getPromptPayQR(amount) {
-    const promptPayNumber = '0812345678'; // ร้านน้ำปั่นพี่ต้อม
+    const promptPayNumber = '0812345678'; // ล้านน้ำปั่น
     return `https://promptpay.io/${promptPayNumber}/${parseFloat(amount).toFixed(2)}.png`;
   },
 
@@ -880,7 +880,7 @@ const DB = {
     if (nextStatus === 'Ready') {
       this.sendLineNotification(order.username, `น้ำปั่นออร์เดอร์ ${orderId} ของคุณเสร็จเรียบร้อยแล้ว! มารับได้เลยที่เคาน์เตอร์ของร้านครับ 🏁`);
     } else if (nextStatus === 'Completed') {
-      this.sendLineNotification(order.username, `ขอบคุณที่มาอุดหนุนร้านพี่ต้อมครับ! ออร์เดอร์ ${orderId} ได้รับเครื่องดื่มเรียบร้อยแล้ว หวังว่าจะชื่นชอบน้ำปั่นของเรานะคร้าบ 🥭`);
+      this.sendLineNotification(order.username, `ขอบคุณที่มาอุดหนุนล้านน้ำปั่นครับ! ออร์เดอร์ ${orderId} ได้รับเครื่องดื่มเรียบร้อยแล้ว หวังว่าจะชื่นชอบน้ำปั่นของเรานะคร้าบ 🥭`);
     }
 
     // Supabase Async Write
@@ -1123,9 +1123,9 @@ const DB = {
     
     // 2. Static public promo codes
     const promoCodes = {
-      'TOM10': { type: 'percent', value: 10, minPrice: 0, label: 'ส่วนลด 10%' },
+      'LAN10': { type: 'percent', value: 10, minPrice: 0, label: 'ส่วนลด 10%' },
       'SWEET20': { type: 'fixed', value: 20, minPrice: 40, label: 'ส่วนลด 20 ฿ (ขั้นต่ำ 40 ฿)' },
-      'PTOM': { type: 'fixed', value: 15, minPrice: 30, label: 'ส่วนลดพิเศษพี่ต้อม 15 ฿' },
+      'LAN': { type: 'fixed', value: 15, minPrice: 30, label: 'ส่วนลดพิเศษล้านน้ำปั่น 15 ฿' },
       'FREE50': { type: 'percent', value: 50, minPrice: 0, label: 'ส่วนลด 50%' },
       'NEWUSER': { type: 'percent', value: 15, minPrice: 0, label: 'ส่วนลดสำหรับลูกค้าใหม่ 15%' }
     };
@@ -1244,7 +1244,11 @@ const DB = {
   },
 
   getOrders(username = null) {
-    return JSON.parse(localStorage.getItem('ptom_orders')) || [];
+    const orders = JSON.parse(localStorage.getItem('ptom_orders')) || [];
+    if (username) {
+      return orders.filter(o => o.username === username);
+    }
+    return orders;
   },
 
   saveOrders(orders) {
@@ -1475,7 +1479,7 @@ const DB = {
       { id: 'smoothie_lover', title: 'แฟนพันธุ์แท้น้ำปั่น', desc: 'สั่งน้ำปั่นครบ 5 แก้วขึ้นไป', icon: '🥤' },
       { id: 'early_bird', title: 'ตื่นเช้ามาเติมวิตามิน', desc: 'สั่งน้ำปั่นก่อนเวลา 10:00 น. สำเร็จ', icon: '🌅' },
       { id: 'big_spender', title: 'สายเปย์พรีเมียม', desc: 'มียอดซื้อเครื่องดื่มสะสมทะลุ ฿500', icon: '💰' },
-      { id: 'radiant_champion', title: 'ตระกูลพี่ต้อมตัวจริง', desc: 'ก้าวสู่ระดับ Radiant Rank', icon: '👑' }
+      { id: 'radiant_champion', title: 'ล้านน้ำปั่นตัวจริง', desc: 'ก้าวสู่ระดับ Radiant Rank', icon: '👑' }
     ];
   },
 
