@@ -149,6 +149,11 @@ async function syncFromSupabase() {
   try {
     console.log('Background Syncing with Supabase...');
     
+    const isAdmin = localStorage.getItem('ptom_admin_session') === 'active';
+    const curUserJson = localStorage.getItem('ptom_current_user');
+    const currentUser = curUserJson ? JSON.parse(curUserJson) : null;
+    const filterSuffix = (!isAdmin && currentUser && currentUser.username) ? `&username=eq.${encodeURIComponent(currentUser.username)}` : '';
+    
     // 1. Sync users
     const users = await sbQuery('ptom_users?select=*');
     if (users) {
@@ -196,7 +201,7 @@ async function syncFromSupabase() {
     }
 
     // 2. Sync scans
-    const scans = await sbQuery('ptom_scans?select=*&order=timestamp.desc');
+    const scans = await sbQuery('ptom_scans?select=*&order=timestamp.desc' + filterSuffix);
     if (scans) {
       const mappedScans = scans.map(s => ({
         id: s.id,
@@ -211,7 +216,7 @@ async function syncFromSupabase() {
     }
 
     // 3. Sync redemptions
-    const redemptions = await sbQuery('ptom_redemptions?select=*&order=timestamp.desc');
+    const redemptions = await sbQuery('ptom_redemptions?select=*&order=timestamp.desc' + filterSuffix);
     if (redemptions) {
       const mappedRedeems = redemptions.map(r => ({
         id: r.id,
@@ -225,7 +230,7 @@ async function syncFromSupabase() {
     }
 
     // 4. Sync orders
-    const orders = await sbQuery('ptom_orders?select=*&order=created_at.desc');
+    const orders = await sbQuery('ptom_orders?select=*&order=created_at.desc' + filterSuffix);
     if (orders) {
       // Map properties back
       const mappedOrders = orders.map(o => ({
@@ -247,7 +252,7 @@ async function syncFromSupabase() {
     }
 
     // 5. Sync coupons
-    const coupons = await sbQuery('ptom_user_coupons?select=*');
+    const coupons = await sbQuery('ptom_user_coupons?select=*' + filterSuffix);
     if (coupons) {
       const mappedCoupons = coupons.map(c => ({
         id: c.id,
@@ -262,7 +267,7 @@ async function syncFromSupabase() {
     }
 
     // 5b. Sync quests progress
-    const userQuests = await sbQuery('ptom_user_quests?select=*');
+    const userQuests = await sbQuery('ptom_user_quests?select=*' + filterSuffix);
     if (userQuests) {
       const progressByUsername = {};
       userQuests.forEach(uq => {
@@ -505,6 +510,10 @@ const DB = {
       this.logActivity(user.username, 'ออกจากระบบ', 'ออกจากระบบสำเร็จ');
     }
     localStorage.removeItem('ptom_current_user');
+    localStorage.removeItem('ptom_orders');
+    localStorage.removeItem('ptom_scans');
+    localStorage.removeItem('ptom_redemptions');
+    localStorage.removeItem('ptom_user_coupons');
   },
 
   getCurrentUser() {
