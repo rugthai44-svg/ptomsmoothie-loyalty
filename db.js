@@ -2470,7 +2470,7 @@ const DB = {
         <div id="line-simulator-header">
           <div id="line-simulator-header-title">
             <span style="display:inline-block; width:8px; height:8px; background:#39ff14; border-radius:50%; box-shadow:0 0 6px #39ff14;"></span>
-            LINE Notify (จำลอง)
+            การแจ้งเตือนของระบบนี้
           </div>
           <button id="line-simulator-header-close">×</button>
         </div>
