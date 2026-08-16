@@ -4,7 +4,8 @@
   "description": "Loyalty Program Web App for P'Tom's Smoothie Shop in Tech-Organic Dark Mode",
   "main": "login.html",
   "scripts": {
-    "dev": "node start.js"
+    "dev": "node start.js",
+    "build": "echo 'No build step required'"
   },
   "devDependencies": {
     "lite-server": "^2.6.1"
