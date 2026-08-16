@@ -34,6 +34,116 @@
     .grid-progress-card {
       margin-bottom: 30px;
     }
+    
+    /* Reward Store Styles */
+    .reward-store-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      margin-bottom: 16px;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+    }
+    .reward-store-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .reward-item-card {
+      background: linear-gradient(135deg, rgba(10, 18, 32, 0.8) 0%, rgba(18, 30, 51, 0.5) 100%);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+    .reward-item-card:hover {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
+      transform: translateY(-2px);
+    }
+    .reward-icon-large {
+      font-size: 3rem;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.2));
+    }
+    .reward-title-text {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .reward-cost-badge {
+      display: inline-block;
+      background: rgba(0, 240, 255, 0.1);
+      border: 1px solid var(--accent-cyan);
+      color: var(--accent-cyan);
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      margin-bottom: 8px;
+    }
+    .reward-desc-text {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      line-height: 1.4;
+      margin-bottom: 16px;
+      flex-grow: 1;
+    }
+    
+    /* Redeem Success Modal */
+    .success-modal-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(6, 11, 19, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1001;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .success-modal-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .success-modal-card {
+      width: 90%;
+      max-width: 440px;
+      background: var(--bg-secondary);
+      border: 2px dashed var(--accent-green);
+      box-shadow: 0 0 25px rgba(57, 255, 20, 0.25);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+    }
+    .modal-coupon-code {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent-green);
+      letter-spacing: 2px;
+      font-family: monospace;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(57, 255, 20, 0.3);
+      border-radius: 8px;
+      margin: 16px 0;
+      text-shadow: 0 0 8px rgba(57, 255, 20, 0.4);
+      display: inline-block;
+      user-select: all;
+    }
   </style>
 </head>
 <body>
@@ -73,9 +183,19 @@
     
     <!-- Left Column: Voucher Redeeming Details -->
     <section>
-      <!-- Voucher Details -->
-      <div id="voucherContainer" class="voucher-card locked">
-        <!-- Rendered dynamically based on points -->
+      <!-- Reward Store Section -->
+      <div class="glass-card" style="margin-bottom: 24px;">
+        <div class="reward-store-title">
+          <span>🏪 ร้านค้าของรางวัล (Reward Store)</span>
+          <span style="font-size: 0.9rem; color: var(--accent-cyan); font-weight: 600;" id="storeUserPointsText">แต้มของคุณ: 0 แต้ม</span>
+        </div>
+        <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 20px; margin-top: -8px;">
+          ใช้แต้มสะสมแลกรับคูปองส่วนลดพิเศษ คูปองจะแสดงในหน้ากระเป๋าเงินเพื่อนำไปใช้สั่งซื้อเครื่องดื่มได้ทันที
+        </p>
+        
+        <div class="reward-store-grid" id="rewardStoreGrid">
+          <!-- Rendered dynamically -->
+        </div>
       </div>
 
       <!-- Cup Accumulation Grid Box -->
@@ -126,6 +246,29 @@
 
   </main>
 
+  <!-- Direct Redeem Success Modal -->
+  <div class="success-modal-overlay" id="redeemSuccessModal">
+    <div class="success-modal-card">
+      <span style="font-size: 3.5rem;">🎉</span>
+      <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--accent-green); margin-top: 10px;">แลกรับของรางวัลสำเร็จ!</h2>
+      <p style="color: var(--text-sub); font-size: 0.85rem; margin-top: 4px;" id="modalRedeemSuccessDesc"></p>
+
+      <span class="form-label" style="margin-top: 16px; font-weight: 600;">รหัสคูปองของคุณ:</span>
+      <div class="modal-coupon-code" id="modalCouponCodeText">CPN-XXXXX</div>
+      
+      <div style="margin-bottom: 20px;">
+        <button class="btn btn-success" style="padding: 8px 16px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;" id="btnCopyRedeemedCode">
+          📋 คัดลอกรหัสคูปอง
+        </button>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 16px;">
+        <a href="home.html" class="btn btn-primary" style="flex: 1; font-size: 0.9rem;">🏠 หน้าหลัก</a>
+        <button class="btn btn-secondary" onclick="closeRedeemSuccessModal()" style="flex: 1; font-size: 0.9rem;">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
   <script src="db.js?v=4"></script>
   <script>
     // Authentication guard
@@ -153,38 +296,17 @@
 
       const pts = currentUser.points;
       const exp = currentUser.exp || 0;
+      const vouchersAvailable = Math.floor(pts / 100);
       
       // Update nav details
       const rankInfo = DB.getRank(exp);
       document.getElementById('navRankEmoji').textContent = rankInfo.logo;
       document.getElementById('navUserPoints').textContent = `${pts} แต้ม (${exp} EXP)`;
 
-      // 1. Voucher Card rendering logic
-      const vouchersAvailable = Math.floor(pts / 100);
-      const voucherContainer = document.getElementById('voucherContainer');
-      
-      if (vouchersAvailable > 0) {
-        voucherContainer.className = 'voucher-card';
-        voucherContainer.innerHTML = `
-          <div class="voucher-badge-icon">🥤</div>
-          <h2 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 6px;">ยินดีด้วย! คุณได้สิทธิ์น้ำปั่นฟรี</h2>
-          <p class="neon-text-green" style="font-weight: 700; margin-bottom: 12px; font-size: 1.1rem;">คุณมีคูปองสะสมครบแลกน้ำปั่นฟรี: ${vouchersAvailable} แก้ว</p>
-          <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 24px; max-width: 500px; margin-left: auto; margin-right: auto;">
-            กรุณาถ่ายรูปภาพแก้วน้ำปั่นที่ได้รับสิทธิ์ฟรี หรืออัปโหลดรูปภาพหลักฐานแก้วน้ำเพื่อใช้สิทธิ์และเปิดคูปองรับเครื่องดื่มฟรี
-          </p>
-          <a href="redemption.html" class="btn btn-success" style="padding: 12px 32px; font-size: 1.05rem;">แลกรางวัลเลยวันนี้</a>
-        `;
-      } else {
-        voucherContainer.className = 'voucher-card locked';
-        // Compute how many points needed
-        const pointsNeeded = 100 - pts;
-        voucherContainer.innerHTML = `
-          <div class="voucher-badge-icon">🔒</div>
-          <h2 style="font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; color: var(--text-sub);">คูปองเครื่องดื่มฟรียังคงถูกล็อก</h2>
-          <p style="color: var(--text-sub); font-size: 0.9rem; margin-bottom: 24px;">คุณต้องการเพิ่มอีก <span class="neon-text-cyan" style="font-weight: 700;">${pointsNeeded} แต้ม</span> เพื่อปลดล็อกของรางวัลฟรีแก้วถัดไป</p>
-          <button class="btn btn-secondary" disabled>ยังไม่สามารถแลกได้</button>
-        `;
-      }
+      // Render Reward Store
+      renderRewardStore();
+
+
 
       // 2. 10 Cups Grid rendering logic
       // Current block progress is points modulo 100
@@ -248,6 +370,97 @@
       renderRedemptionHistory();
     }
 
+    function renderRewardStore() {
+      const pts = currentUser.points;
+      document.getElementById('storeUserPointsText').textContent = `แต้มสะสม: ${pts} แต้ม`;
+
+      const storeItems = DB.getRewardItems();
+
+      const grid = document.getElementById('rewardStoreGrid');
+      grid.innerHTML = '';
+
+      storeItems.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'reward-item-card';
+
+        const canRedeem = pts >= item.cost;
+        const btnClass = item.id === 'free_smoothie' ? 'btn-success' : 'btn-primary';
+
+        card.innerHTML = `
+          <div>
+            <div class="reward-icon-large">${item.icon}</div>
+            <h3 class="reward-title-text">${item.title}</h3>
+            <span class="reward-cost-badge">${item.cost} แต้ม</span>
+            <p class="reward-desc-text">${item.desc}</p>
+          </div>
+          <button class="btn ${btnClass}" style="width: 100%;" ${!canRedeem ? 'disabled' : ''} onclick="handleRedeemClick('${item.id}', ${item.cost}, '${item.redirect || ''}')">
+            ${item.actionText}
+          </button>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    let lastRedeemedCode = '';
+
+    window.handleRedeemClick = function(rewardId, cost, redirectUrl) {
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+        return;
+      }
+
+      if (!confirm(`ยืนยันการแลกคะแนนสะสมจำนวน ${cost} แต้มเพื่อรับคูปองใช่หรือไม่?`)) return;
+
+      try {
+        const result = DB.redeemCustomReward(currentUser.username, rewardId);
+        
+        const isRealUuid = result.coupon.id.includes('-') && !result.coupon.id.startsWith('CPN-');
+        const shortCode = isRealUuid ? 'CPN-' + result.coupon.id.split('-')[0].toUpperCase() : result.coupon.id;
+        lastRedeemedCode = shortCode;
+
+        document.getElementById('modalCouponCodeText').textContent = shortCode;
+        document.getElementById('modalRedeemSuccessDesc').textContent = `คุณได้แลกคูปอง [${result.coupon.title}] สำเร็จแล้ว โดยใช้แต้มแลกไป ${result.pointsCost} แต้ม`;
+        
+        document.getElementById('redeemSuccessModal').classList.add('show');
+
+        // Play Beep
+        try {
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.25);
+        } catch(e){}
+
+        renderRewardsPage();
+      } catch (err) {
+        alert('เกิดข้อผิดพลาดในการแลกของรางวัล: ' + err.message);
+      }
+    };
+
+    window.closeRedeemSuccessModal = function() {
+      document.getElementById('redeemSuccessModal').classList.remove('show');
+    };
+
+    document.getElementById('btnCopyRedeemedCode').addEventListener('click', () => {
+      if (!lastRedeemedCode) return;
+      navigator.clipboard.writeText(lastRedeemedCode).then(() => {
+        const btn = document.getElementById('btnCopyRedeemedCode');
+        const originalText = btn.textContent;
+        btn.textContent = 'คัดลอกสำเร็จ! ✅';
+        btn.style.color = 'var(--accent-green)';
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.style.color = '';
+        }, 2000);
+      }).catch(err => {
+        alert('คัดลอกล้มเหลว: ' + err.message);
+      });
+    });
+
     function renderRedemptionHistory() {
       const redemptions = DB.getRedemptions(currentUser.username);
       const tableBody = document.getElementById('redemptionTableBody');
@@ -276,10 +489,14 @@
           imgTag = `<span style="font-size: 1.5rem;">🎁</span>`;
         }
 
+        const storeItems = DB.getRewardItems();
+        const matchedItem = storeItems.find(item => item.cost === redeem.pointsDeducted);
+        const titleName = matchedItem ? matchedItem.title : (redeem.pointsDeducted === 100 ? 'น้ำปั่นฟรี 1 แก้ว' : 'คูปองรางวัล');
+
         row.innerHTML = `
           <td>${imgTag}</td>
           <td>
-            <span style="font-weight: 600; color: #fff;">แก้วน้ำฟรี 1 ใบ</span><br>
+            <span style="font-weight: 600; color: #fff;">${titleName}</span><br>
             <span style="font-size: 0.75rem; color: var(--accent-red); font-family: monospace;">-${redeem.pointsDeducted} แต้ม</span>
           </td>
           <td style="font-size: 0.8rem; color: var(--text-sub);">${dateStr}</td>

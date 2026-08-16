@@ -5,6 +5,124 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>หน้าหลัก - ล้านน้ำปั่น</title>
   <link rel="stylesheet" href="styles.css">
+  <style>
+    .news-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.3s ease;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .news-card:hover {
+      border-color: var(--accent-cyan);
+      transform: translateX(4px);
+    }
+    .news-icon {
+      font-size: 2rem;
+      background: rgba(0, 240, 255, 0.08);
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 50px;
+      height: 50px;
+    }
+    .news-meta {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      margin-bottom: 4px;
+    }
+    .news-title {
+      font-weight: 700;
+      color: #fff;
+      font-size: 1.05rem;
+      margin-bottom: 4px;
+    }
+    .news-desc {
+      color: var(--text-sub);
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+    
+    .coupon-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .promo-card {
+      background: linear-gradient(135deg, rgba(18, 30, 51, 0.6) 0%, rgba(10, 18, 32, 0.9) 100%);
+      border: 1px dashed var(--accent-cyan);
+      border-radius: 12px;
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.3s ease;
+    }
+    .promo-card.user-coupon {
+      border: 1px dashed var(--accent-green);
+    }
+    .promo-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 240, 255, 0.1);
+    }
+    .promo-card.user-coupon:hover {
+      box-shadow: 0 5px 15px rgba(57, 255, 20, 0.1);
+    }
+    .promo-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(0, 240, 255, 0.12);
+      border: 1px solid var(--accent-cyan);
+      color: var(--accent-cyan);
+      padding: 2px 8px;
+      border-radius: 8px;
+      font-size: 0.7rem;
+      font-weight: bold;
+    }
+    .promo-card.user-coupon .promo-badge {
+      background: rgba(57, 255, 20, 0.12);
+      border: 1px solid var(--accent-green);
+      color: var(--accent-green);
+    }
+    .promo-title {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #fff;
+      margin-bottom: 6px;
+      padding-right: 70px;
+    }
+    .promo-code-box {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-family: monospace;
+      font-size: 0.95rem;
+      color: var(--accent-cyan);
+      display: inline-block;
+      margin: 8px 0;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+    .promo-card.user-coupon .promo-code-box {
+      color: var(--accent-green);
+    }
+    .promo-expiry {
+      font-size: 0.75rem;
+      color: var(--text-sub);
+      margin-bottom: 12px;
+    }
+  </style>
 </head>
 <body>
 
@@ -54,7 +172,7 @@
       </div>
 
       <!-- Quick Shortcuts Grid -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
         <div class="glass-card" style="text-align: center; padding: 20px;">
           <h3 style="font-size: 1.1rem; margin-bottom: 8px;">ประวัติสะสมแต้ม</h3>
           <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 16px;">ตรวจสอบประวัติและเวลาการรับแต้ม</p>
@@ -64,6 +182,27 @@
           <h3 style="font-size: 1.1rem; margin-bottom: 8px;">ของรางวัล</h3>
           <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 16px;">ตรวจสอบและแลกน้ำปั่นฟรี</p>
           <a href="rewards.html" class="btn btn-success" style="width: 100%;">แลกแก้วฟรี</a>
+        </div>
+      </div>
+
+      <!-- News & Updates Section -->
+      <div class="glass-card" style="margin-bottom: 24px;">
+        <h2 style="font-size: 1.3rem; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #fff;">
+          📢 ข่าวสารและอัปเดตล่าสุด
+        </h2>
+        <div id="newsContainer">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- Promotions & Coupons Section -->
+      <div class="glass-card" style="margin-bottom: 24px;">
+        <h2 style="font-size: 1.3rem; font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; color: #fff;">
+          🎟️ โปรโมชั่นและคูปองส่วนลด
+        </h2>
+        <p style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 16px;">คัดลอกรหัสส่วนลดหรือคูปองไปใช้ในการสั่งเครื่องดื่มผ่านหน้าเมนูเพื่อรับสิทธิ์ลดราคา</p>
+        <div class="coupon-grid" id="promotionsContainer">
+          <!-- Rendered dynamically -->
         </div>
       </div>
     </section>
@@ -171,13 +310,113 @@
       }
     }
 
+     function getNewsData() {
+       return DB.getNews();
+     }
+
+    function renderNews() {
+      const container = document.getElementById('newsContainer');
+      container.innerHTML = getNewsData().map(item => `
+        <div class="news-card">
+          <div class="news-icon">${item.icon}</div>
+          <div style="flex: 1;">
+            <div class="news-meta">📅 ${item.date}</div>
+            <h3 class="news-title">${item.title}</h3>
+            <p class="news-desc">${item.desc}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderPromotionsAndCoupons() {
+      const container = document.getElementById('promotionsContainer');
+      container.innerHTML = '';
+
+      const userCoupons = DB.getUserCoupons(currentUser.username) || [];
+      const activeUserCoupons = userCoupons.filter(c => !c.isUsed && new Date() <= new Date(c.expiresAt));
+
+      let html = '';
+
+      // Render only user coupons (Milestone rewards & Redeemed rewards from quests)
+      activeUserCoupons.forEach(c => {
+        const isRealUuid = c.id.includes('-') && !c.id.startsWith('CPN-');
+        const shortCode = isRealUuid ? 'CPN-' + c.id.split('-')[0].toUpperCase() : c.id;
+        const expiresDate = new Date(c.expiresAt);
+        const dateStr = expiresDate.toLocaleDateString('th-TH');
+
+        let descText = 'ส่วนลดพิเศษสำหรับการสะสมสิทธิ์';
+        if (c.couponType === 'discount_10') descText = 'ส่วนลด 10% สำหรับเมนูเครื่องดื่มและท็อปปิ้ง';
+        else if (c.couponType === 'discount_15') descText = 'ส่วนลด 15 บาท สำหรับสั่งซื้อเครื่องดื่มแก้วโปรด';
+        else if (c.couponType === 'free_topping') descText = 'สิทธิ์เลือกนมสด/นมโอ๊ต หรือท็อปปิ้งบุกเมล็ดเจียฟรี';
+        else if (c.couponType === 'free_bakery') descText = 'สิทธิ์แลกขนมขบเคี้ยว / คุกกี้ หรือเบเกอรี่ฟรี 1 ซอง (สูงสุด 40 ฿)';
+        else if (c.couponType === 'free_snack') descText = 'สิทธิ์แลกแซนวิชอบร้อน หรือครัวซองต์อบชีสฟรี 1 ชิ้น (สูงสุด 60 ฿)';
+        else if (c.couponType === 'free_smoothie') descText = 'สิทธิ์แลกแก้วน้ำปั่นฟรี 1 แก้ว (มูลค่าสูงสุด 80 ฿)';
+
+        html += `
+          <div class="promo-card user-coupon">
+            <span class="promo-badge">คูปองของฉัน</span>
+            <div class="promo-title" style="color: var(--accent-green);">${c.title}</div>
+            <div class="promo-desc" style="color: var(--text-main); font-size: 0.85rem; margin-bottom: 8px;">${descText}</div>
+            <div style="margin: 4px 0;">
+              <span class="promo-code-box">${shortCode}</span>
+            </div>
+            <div class="promo-expiry">📅 หมดอายุ: ${dateStr}</div>
+            <button class="btn btn-success" style="width: 100%; padding: 8px; font-size: 0.85rem;" onclick="copyPromoCode('${shortCode}')">
+              📋 คัดลอกรหัสคูปอง
+            </button>
+          </div>
+        `;
+      });
+
+      if (html === '') {
+        container.innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; color: var(--text-sub); padding: 30px 20px; background: rgba(255,255,255,0.01); border: 1px dashed var(--border-color); border-radius: 12px;">
+            คุณยังไม่มีคูปองส่วนลดในขณะนี้<br>
+            <span style="font-size: 0.85rem; display: inline-block; margin-top: 10px; color: var(--text-sub);">
+              💡 กรุณาทำภารกิจสะสมแต้ม หรือหมุนวงล้อนำโชคที่ <a href="quests.html" style="color: var(--accent-cyan); text-decoration: none; font-weight: 700; border-bottom: 1px dashed var(--accent-cyan);">หน้าระบบเควสต์ 🎯</a> เพื่อรับสิทธิ์แลกคูปองในร้านค้าของรางวัล!
+            </span>
+          </div>
+        `;
+      } else {
+        container.innerHTML = html;
+      }
+    }
+
+    function copyPromoCode(code) {
+      navigator.clipboard.writeText(code).then(() => {
+        showToast(`คัดลอกรหัส [ ${code} ] สำเร็จ! สั่งซื้อเครื่องดื่มและใช้โค้ดลดราคาได้เลย`);
+      }).catch(err => {
+        alert('คัดลอกรหัสล้มเหลว: ' + err.message);
+      });
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toastMessage');
+      const toastText = document.getElementById('toastText');
+      toastText.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3500);
+    }
+
     // Initialize
     renderUserProfile();
+    renderNews();
+    renderPromotionsAndCoupons();
 
     // Support live updates if user points or fields changes in other tabs
     window.addEventListener('storage', () => {
       renderUserProfile();
+      renderNews();
+      renderPromotionsAndCoupons();
     });
   </script>
+
+  <!-- Toast Message -->
+  <div id="toastMessage" class="toast-msg">
+    <span style="font-size: 1.25rem;">📋</span>
+    <span id="toastText">คัดลอกโค้ดสำเร็จ!</span>
+  </div>
 </body>
 </html>

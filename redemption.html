@@ -349,9 +349,8 @@
         // Play success beep
         playBeep();
 
-        // Generate Coupon Code
-        const cleanCode = 'LAN-FREE-' + Math.floor(10000 + Math.random() * 90000);
-        document.getElementById('couponCodeDisplay').textContent = cleanCode;
+        // Display actual coupon code
+        document.getElementById('couponCodeDisplay').textContent = redeemId;
 
         // Populate receipt fields
         document.getElementById('receiptUsernameText').textContent = currentUser.fullName + ` (${currentUser.username})`;

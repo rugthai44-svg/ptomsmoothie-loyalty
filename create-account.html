@@ -5,6 +5,77 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>สมัครสมาชิก - ล้านน้ำปั่น</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    /* UI Specifications & Styling overrides */
+    body {
+      background-color: #0b131f !important; /* Deep dark background */
+    }
+    .auth-card {
+      background: #111d2e !important; /* Dark navy background */
+      border: 1px solid #1e293b !important; /* Subtle rounded border */
+      border-radius: 16px !important; /* rounded-2xl */
+      padding: 32px !important; /* p-8 */
+      max-width: 450px;
+      width: 100%;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    }
+    .form-input {
+      background: #0d1726 !important; /* Dark filled background */
+      border: 1px solid #1e2d42 !important; /* border */
+      color: #f8fafc !important; /* text */
+      font-size: 0.95rem;
+      border-radius: 8px;
+    }
+    .form-input::placeholder {
+      color: #475569 !important; /* placeholder */
+    }
+    .form-input:focus {
+      border-color: #00d2d3 !important; /* focus ring cyan */
+      box-shadow: 0 0 0 2px rgba(0, 210, 211, 0.2) !important;
+    }
+    .form-label {
+      color: #cbd5e1 !important; /* Light gray */
+      margin-bottom: 6px !important; /* mb-1.5 */
+      font-size: 0.875rem !important; /* text-sm */
+      font-weight: 500;
+    }
+    .btn-google-signup {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: #e91e63; /* Vibrant magenta */
+      color: #fff;
+      padding: 12px;
+      border: none;
+      border-radius: 8px; /* rounded-lg */
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+      box-shadow: 0 4px 12px rgba(233, 30, 99, 0.25);
+    }
+    .btn-google-signup:hover {
+      background: #d81b60; /* hover effect */
+      box-shadow: 0 6px 16px rgba(233, 30, 99, 0.4);
+    }
+    .btn-google-signup:active {
+      transform: scale(0.98);
+    }
+    .btn-primary {
+      background: #0f3b4c !important; /* Dark teal outline/gradient */
+      border: 1px solid #00d2d3 !important; /* cyan border */
+      color: #00d2d3 !important;
+      font-weight: bold;
+      transition: all 0.2s ease;
+    }
+    .btn-primary:hover {
+      background: #00d2d3 !important;
+      color: #111d2e !important;
+      box-shadow: 0 0 15px rgba(0, 210, 211, 0.4);
+    }
+  </style>
 </head>
 <body>
   <!-- Floating Fruit Animation Background -->
@@ -12,12 +83,41 @@
 
   <div class="auth-container">
     <div class="glass-card auth-card" style="margin: 20px 0;">
-      <h2 class="auth-title">สมัครสมาชิกใหม่</h2>
-      <p class="auth-subtitle neon-text-cyan">สมัครเพื่อรับสิทธิ์สะสมแต้ม 10 แก้ว แลกฟรี 1 แก้ว!</p>
+      
+      <!-- Top Header Area -->
+      <div style="text-align: center; margin-bottom: 24px;">
+        <!-- Magenta App Logo -->
+        <div style="display: inline-flex; width: 56px; height: 56px; border-radius: 50%; background: #e91e63; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(233, 30, 99, 0.4); margin-bottom: 16px;">
+          <span style="font-size: 1.8rem; line-height: 1;">🥤</span>
+        </div>
+        <h2 class="auth-title" style="font-size: 1.5rem; font-weight: 800; color: #ffffff; margin: 0 0 4px 0;">สมัครสมาชิกใหม่</h2>
+        <p class="auth-subtitle" style="color: #38bdf8; font-size: 0.875rem; margin: 0;">สมัครเพื่อรับสิทธิ์สะสมแต้ม 10 แก้ว แลกฟรี 1 แก้ว!</p>
+      </div>
 
       <div id="errorBox" style="color: var(--accent-red); background: rgba(255, 56, 96, 0.1); border: 1px solid var(--accent-red); padding: 10px; border-radius: 8px; margin-bottom: 16px; display: none; font-size: 0.9rem; text-align: center;"></div>
       <div id="successBox" style="color: var(--accent-green); background: rgba(57, 255, 20, 0.1); border: 1px solid var(--accent-green); padding: 10px; border-radius: 8px; margin-bottom: 16px; display: none; font-size: 0.9rem; text-align: center;"></div>
 
+      <!-- Google Sign-Up Integration (New Action) -->
+      <button type="button" class="btn-google-signup" id="googleSignUpBtn">
+        <div style="background: white; border-radius: 4px; padding: 4px; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px;">
+          <svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+          </svg>
+        </div>
+        <span>สมัครสมาชิกด้วย Google</span>
+      </button>
+
+      <!-- Divider -->
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="flex: 1; height: 1px; background: #1e2d42;"></div>
+        <span style="color: #64748b; font-size: 0.75rem; white-space: nowrap;">หรือกรอกข้อมูลด้านล่าง</span>
+        <div style="flex: 1; height: 1px; background: #1e2d42;"></div>
+      </div>
+
+      <!-- Standard Input Fields Form -->
       <form id="registerForm">
         <div class="form-group">
           <label class="form-label" for="fullNameInput">ชื่อ-นามสกุล</label>
@@ -41,10 +141,10 @@
             <button type="button" class="password-toggle" id="togglePassword">👁️</button>
           </div>
           <!-- Strength Meter -->
-          <div class="strength-meter">
+          <div class="strength-meter" style="margin-top: 8px;">
             <div id="strengthBar" class="strength-bar"></div>
           </div>
-          <span id="strengthText" style="font-size: 0.8rem; color: var(--text-sub); display: block; margin-top: 4px;">ความแรงรหัสผ่าน: ยังไม่มี</span>
+          <span id="strengthText" style="font-size: 0.8rem; color: #64748b; display: block; margin-top: 4px;">ความแรงรหัสผ่าน: ยังไม่มี</span>
         </div>
 
         <div class="form-group">
@@ -56,7 +156,7 @@
       </form>
 
       <div style="margin-top: 20px; text-align: center; font-size: 0.9rem;">
-        <p style="color: var(--text-sub);">มีบัญชีสมาชิกอยู่แล้ว? <a href="login.html" style="color: var(--accent-cyan); text-decoration: none; font-weight: 600;">เข้าสู่ระบบ</a></p>
+        <p style="color: #cbd5e1;">มีบัญชีสมาชิกอยู่แล้ว? <a href="login.html" style="color: #00d2d3; text-decoration: none; font-weight: 600;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">เข้าสู่ระบบ</a></p>
       </div>
     </div>
   </div>
@@ -68,7 +168,7 @@
       window.location.href = 'home.html';
     }
 
-    // Toggle Password
+    // Toggle Password Visibility
     const togglePasswordBtn = document.getElementById('togglePassword');
     const passwordInput = document.getElementById('passwordInput');
     togglePasswordBtn.addEventListener('click', () => {
@@ -92,6 +192,7 @@
       if (!val) {
         strengthBar.style.width = '0%';
         strengthText.textContent = 'ความแรงรหัสผ่าน: ยังไม่มี';
+        strengthText.style.color = '#64748b';
         return;
       }
 
@@ -114,6 +215,103 @@
         strengthText.style.color = 'var(--accent-green)';
       }
     });
+
+    // Google Sign-Up Action Handler with Real Google Identity Services (GIS) & Simulated fallback
+    const googleSignUpBtn = document.getElementById('googleSignUpBtn');
+    googleSignUpBtn.addEventListener('click', () => {
+      let clientId = localStorage.getItem('ptom_google_client_id');
+      
+      if (!clientId) {
+        // Default seed to user's real Google Client ID
+        clientId = '437099303581-i32b36qrrv0jggoh2at1cakcsushn0ja.apps.googleusercontent.com';
+      }
+
+      if (clientId === 'simulate') {
+        runSimulatedGoogleSignUp();
+        return;
+      }
+
+      if (typeof google === 'undefined' || !google.accounts) {
+        alert("กำลังโหลดบริการล็อกอินของ Google... กรุณารอสักครู่แล้วลองใหม่อีกครั้ง");
+        return;
+      }
+
+      try {
+        const client = google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'email profile',
+          callback: (tokenResponse) => {
+            if (tokenResponse && tokenResponse.access_token) {
+              successBox.textContent = "กำลังเชื่อมต่อบัญชี Google และดึงข้อมูลโปรไฟล์...";
+              successBox.style.display = "block";
+              errorBox.style.display = "none";
+              
+              fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${tokenResponse.access_token}`)
+                .then(res => res.json())
+                .then(userInfo => {
+                  handleGoogleUserInfo(userInfo);
+                })
+                .catch(err => {
+                  errorBox.textContent = "ดึงข้อมูลโปรไฟล์ Google ล้มเหลว: " + err.message;
+                  errorBox.style.display = "block";
+                  successBox.style.display = "none";
+                });
+            }
+          }
+        });
+        client.requestAccessToken();
+      } catch (err) {
+        alert("ไม่สามารถสร้างเซสชันของ Google ได้: " + err.message);
+      }
+    });
+
+    function handleGoogleUserInfo(userInfo) {
+      const email = userInfo.email;
+      const fullName = userInfo.name;
+      const picture = userInfo.picture;
+
+      // Auto-populate fields
+      const simulatedName = fullName || email.split('@')[0];
+      const simulatedUsername = (email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') + '_gg').substring(0, 15);
+
+      document.getElementById('fullNameInput').value = simulatedName;
+      document.getElementById('usernameInput').value = simulatedUsername;
+      document.getElementById('emailInput').value = email;
+      
+      // Auto generate secure password
+      const simulatedPass = 'Gg_' + Math.random().toString(36).substring(2, 10) + '!';
+      passwordInput.value = simulatedPass;
+      document.getElementById('confirmPasswordInput').value = simulatedPass;
+
+      // Save google avatar url inside temp variable to set on registration submit
+      window.googleAvatarUrl = picture || '';
+
+      // Trigger password strength meter update
+      passwordInput.dispatchEvent(new Event('input'));
+
+      successBox.textContent = `เชื่อมต่อบัญชี Google ของคุณสำเร็จแล้ว (${email})! ระบบกรอกข้อมูลอัตโนมัติให้แล้ว กรุณากดปุ่มสร้างบัญชีด้านล่างเพื่อยืนยันการสมัคร`;
+      successBox.style.display = 'block';
+      errorBox.style.display = 'none';
+
+      document.querySelector('button[type="submit"]').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function runSimulatedGoogleSignUp() {
+      const simulatedEmail = prompt("จำลองการเข้าสู่ระบบด้วย Google:\nกรุณากรอกอีเมลของคุณเพื่อเชื่อมต่อบัญชี:", "user.google@gmail.com");
+      if (!simulatedEmail) return;
+
+      if (!simulatedEmail.includes('@') || !simulatedEmail.includes('.')) {
+        alert("รูปแบบอีเมลไม่ถูกต้อง");
+        return;
+      }
+
+      const simulatedName = simulatedEmail.split('@')[0].split('.').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      handleGoogleUserInfo({
+        email: simulatedEmail,
+        name: simulatedName,
+        picture: ''
+      });
+    }
 
     // Register Handler
     const registerForm = document.getElementById('registerForm');
@@ -138,12 +336,23 @@
       }
 
       try {
-        DB.signUp(fullName, username, email, pass);
+        const newUser = DB.signUp(fullName, username, email, pass);
+        // Save Google profile image if available
+        if (window.googleAvatarUrl) {
+          const users = DB.getUsers();
+          const uIdx = users.findIndex(u => u.username === newUser.username);
+          if (uIdx !== -1) {
+            users[uIdx].profileImage = window.googleAvatarUrl;
+            DB.saveUsers(users);
+          }
+        }
+
         successBox.textContent = 'สมัครสมาชิกเสร็จสมบูรณ์! กำลังนำคุณไปหน้าเข้าสู่ระบบ...';
         successBox.style.display = 'block';
         registerForm.reset();
         strengthBar.className = 'strength-bar';
         strengthText.textContent = 'ความแรงรหัสผ่าน: ยังไม่มี';
+        strengthText.style.color = '#64748b';
         
         setTimeout(() => {
           window.location.href = 'login.html';

@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>จัดการของรางวัล เควส และข่าวสาร - แอดมินล้านน้ำปั่น</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .scans-tab-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .menu-action-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    /* Modal styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(6, 11, 19, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .modal-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-container {
+      width: 90%;
+      max-width: 500px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="admin-layout">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="#00f0ff">
+          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+        </svg>
+        <span class="neon-text-cyan">ADMIN PORTAL</span>
+      </div>
+      <nav class="admin-nav">
+        <ul>
+          <li class="admin-nav-item"><a href="admin-dashboard.html">📈 ภาพรวมระบบ (Overview)</a></li>
+          <li class="admin-nav-item"><a href="admin-orders.html">📦 ออเดอร์การสั่งจอง (Bookings)</a></li>
+          <li class="admin-nav-item"><a href="admin-members.html">👥 จัดการสมาชิก (Members)</a></li>
+          <li class="admin-nav-item"><a href="admin-scans.html">📷 ประวัติสะสมแต้ม (Scans)</a></li>
+          <li class="admin-nav-item"><a href="admin-menu.html">🍹 จัดการเมนูร้าน (Products)</a></li>
+          <li class="admin-nav-item active"><a href="admin-rewards.html">🎁 จัดการระบบรางวัล (Rewards)</a></li>
+          <li class="admin-nav-item"><a href="admin-ingredients.html">🧪 วัตถุดิบปั่นสมูทตี้ (Ingredients)</a></li>
+          <li class="admin-nav-item"><a href="admin-settings.html">⚙️ ตั้งค่าระบบ (Settings)</a></li>
+        </ul>
+      </nav>
+      <div style="padding: 24px;">
+        <button class="btn btn-secondary" onclick="logoutAdmin()" style="width: 100%; border-color: var(--accent-red); color: var(--accent-red);">
+          🚪 ออกจากระบบ
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="admin-content">
+      
+      <!-- Content Header -->
+      <header class="admin-header">
+        <div>
+          <h1 style="font-size: 1.8rem; font-weight: 800;">🎁 จัดการระบบรางวัล เควส และข่าวสาร</h1>
+          <p style="color: var(--text-sub); font-size: 0.9rem;">เพิ่ม ลบ หรือแก้ไขของรางวัลในร้านค้า เควสภารกิจสะสมแต้ม และข่าวประชาสัมพันธ์ประชาสัมพันธ์ลูกค้า</p>
+        </div>
+      </header>
+
+      <!-- Tabs Menu -->
+      <section class="scans-tab-row">
+        <button class="btn btn-primary" id="tabRewardsBtn" onclick="switchTab('rewards')">🎁 ของรางวัลในร้านค้า</button>
+        <button class="btn btn-secondary" id="tabQuestsBtn" onclick="switchTab('quests')">🏆 เควสกิจกรรมสะสมแต้ม</button>
+        <button class="btn btn-secondary" id="tabNewsBtn" onclick="switchTab('news')">📢 ข่าวประชาสัมพันธ์</button>
+        <button class="btn btn-secondary" id="tabSpinBtn" onclick="switchTab('spin')">🎡 วงล้อสุ่มนำโชค</button>
+      </section>
+
+      <!-- Control Button Row -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 id="tableTitle" style="font-size: 1.25rem; font-weight: 700; color: #fff;">รายการของรางวัลสะสม</h3>
+        <button class="btn btn-primary" id="addBtn" onclick="openAddModal()">➕ เพิ่มรายการใหม่</button>
+      </div>
+
+      <!-- Grid Data Card -->
+      <section class="glass-card">
+        <div class="custom-table-wrapper">
+          <table class="custom-table">
+            <thead>
+              <tr id="tableHeaders">
+                <!-- Set by JS -->
+              </tr>
+            </thead>
+            <tbody id="dataTableBody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+        <div id="noDataMsg" style="text-align: center; color: var(--text-sub); padding: 40px 0; display: none;">ยังไม่มีรายการข้อมูลในหมวดหมู่นี้</div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- 1. Reward Store Item Modal -->
+  <div class="modal-overlay" id="rewardModal">
+    <div class="glass-card modal-container">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="font-size: 1.2rem; color: var(--accent-cyan);">🎁 เพิ่มของรางวัลร้านค้าใหม่</h3>
+        <button class="btn btn-secondary" onclick="closeModal('rewardModal')" style="padding: 6px 12px; font-size: 0.80rem;">ปิด</button>
+      </div>
+      <form id="rewardForm">
+        <div class="form-group">
+          <label class="form-label" for="rewIcon">อิโมจิไอคอน (Emoji)</label>
+          <input class="form-input" type="text" id="rewIcon" placeholder="เช่น 🥤, 🍪, 💎" required maxlength="5">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="rewTitle">ชื่อของรางวัล</label>
+          <input class="form-input" type="text" id="rewTitle" placeholder="เช่น น้ำปั่นฟรี 1 แก้ว" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="rewCost">คะแนนที่ใช้แลก (แต้ม)</label>
+          <input class="form-input" type="number" id="rewCost" min="1" placeholder="เช่น 50" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="rewDesc">คำอธิบายของรางวัล</label>
+          <input class="form-input" type="text" id="rewDesc" placeholder="รายละเอียดหรือเงื่อนไขการใช้คูปอง" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="rewActionText">ข้อความบนปุ่มกด</label>
+          <input class="form-input" type="text" id="rewActionText" placeholder="เช่น แลกสิทธิ์ (50 แต้ม)" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="rewRedirect">หน้าเว็บที่ส่งต่อไป (ตัวเลือกเสริม)</label>
+          <input class="form-input" type="text" id="rewRedirect" placeholder="ปล่อยว่างไว้สำหรับแลกคูปองปกติ หรือใส่ redemption.html">
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('rewardModal')" style="flex: 1;">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary" style="flex: 1;">บันทึกข้อมูล</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Quest Modal -->
+  <div class="modal-overlay" id="questModal">
+    <div class="glass-card modal-container">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="font-size: 1.2rem; color: var(--accent-cyan);">🏆 เพิ่มเควสกิจกรรมใหม่</h3>
+        <button class="btn btn-secondary" onclick="closeModal('questModal')" style="padding: 6px 12px; font-size: 0.80rem;">ปิด</button>
+      </div>
+      <form id="questForm">
+        <div class="form-group">
+          <label class="form-label" for="qId">รหัสเควส (Quest ID - ภาษาอังกฤษตัวพิมพ์เล็ก)</label>
+          <input class="form-input" type="text" id="qId" placeholder="เช่น weekly_smoothie_10" required pattern="[a-z0-9_]+">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="qTitle">หัวข้อเควสภารกิจ</label>
+          <input class="form-input" type="text" id="qTitle" placeholder="เช่น สั่งสมูทตี้ครบ 10 แก้ว" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="qDesc">คำอธิบายภารกิจ</label>
+          <input class="form-input" type="text" id="qDesc" placeholder="อธิบายเงื่อนไขภารกิจให้ลูกค้าทราบ" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="qTarget">เป้าหมายสะสม (จำนวนครั้ง)</label>
+          <input class="form-input" type="number" id="qTarget" min="1" placeholder="เช่น 10" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="qPoints">รางวัลคะแนนเมื่อสำเร็จ (+แต้ม)</label>
+          <input class="form-input" type="number" id="qPoints" min="1" placeholder="เช่น 30" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="qType">ประเภทเควส</label>
+          <select class="form-input" id="qType" required>
+            <option value="daily">รายวัน (Daily)</option>
+            <option value="weekly" selected>รายสัปดาห์ (Weekly)</option>
+            <option value="achievement">ความสำเร็จเกียรติยศ (Achievement)</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('questModal')" style="flex: 1;">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary" style="flex: 1;">บันทึกข้อมูล</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. News Modal -->
+  <div class="modal-overlay" id="newsModal">
+    <div class="glass-card modal-container">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="font-size: 1.2rem; color: var(--accent-cyan);">📢 เพิ่มข่าวประชาสัมพันธ์ใหม่</h3>
+        <button class="btn btn-secondary" onclick="closeModal('newsModal')" style="padding: 6px 12px; font-size: 0.80rem;">ปิด</button>
+      </div>
+      <form id="newsForm">
+        <div class="form-group">
+          <label class="form-label" for="nIcon">ไอคอนข่าวสาร (Emoji)</label>
+          <input class="form-input" type="text" id="nIcon" placeholder="เช่น 📢, 🍉, 🎉" required maxlength="5">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="nTitle">หัวข้อข่าวประชาสัมพันธ์</label>
+          <input class="form-input" type="text" id="nTitle" placeholder="ระบุหัวข้อข่าวเด่น" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="nDate">วันที่ลงข่าวสาร</label>
+          <input class="form-input" type="text" id="nDate" placeholder="เช่น 16 ส.ค. 2569" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="nDesc">คำอธิบาย/เนื้อหาข่าวสั้น</label>
+          <textarea class="form-input" id="nDesc" rows="4" placeholder="กรอกเนื้อหารายละเอียดข่าวสารที่นี่..." required style="resize:vertical;"></textarea>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('newsModal')" style="flex: 1;">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary" style="flex: 1;">บันทึกข้อมูล</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. Spin Prize Modal -->
+  <div class="modal-overlay" id="spinModal">
+    <div class="glass-card modal-container">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="font-size: 1.2rem; color: var(--accent-cyan);">🎡 เพิ่มรางวัลวงล้อใหม่</h3>
+        <button class="btn btn-secondary" onclick="closeModal('spinModal')" style="padding: 6px 12px; font-size: 0.80rem;">ปิด</button>
+      </div>
+      <form id="spinForm">
+        <div class="form-group">
+          <label class="form-label" for="spLabel">ชื่อของรางวัล (Label บนสไลซ์)</label>
+          <input class="form-input" type="text" id="spLabel" placeholder="เช่น +5 คะแนน, ฟรีท็อปปิ้ง" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="spType">ประเภทรางวัล</label>
+          <select class="form-input" id="spType" required>
+            <option value="points" selected>คะแนนสะสม (Points)</option>
+            <option value="coupon">คูปองรางวัล (Coupon)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="spValue">มูลค่ารางวัล (Value)</label>
+          <input class="form-input" type="text" id="spValue" placeholder="ตัวเลขแต้ม เช่น 5 หรือ รหัสคูปอง เช่น free_topping" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="spWeight">โอกาสออกสุ่ม (Weight - น้ำหนักสุ่ม)</label>
+          <input class="form-input" type="number" id="spWeight" min="1" placeholder="เช่น 40 (โอกาสสูง), 5 (โอกาสต่ำ)" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="spColor">สีของสไลซ์ (Color Code)</label>
+          <input class="form-input" type="text" id="spColor" placeholder="เช่น #121e33 หรือ #ff386055" required>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('spinModal')" style="flex: 1;">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary" style="flex: 1;">บันทึกข้อมูล</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="db.js?v=4"></script>
+  <script>
+    // Security check
+    if (!DB.isAdminLoggedIn()) {
+      window.location.href = 'admin-login.html';
+    }
+
+    function logoutAdmin() {
+      DB.adminLogout();
+      window.location.href = 'admin-login.html';
+    }
+
+    let activeTab = 'rewards';
+
+    function switchTab(tab) {
+      activeTab = tab;
+      
+      const tabRewardsBtn = document.getElementById('tabRewardsBtn');
+      const tabQuestsBtn = document.getElementById('tabQuestsBtn');
+      const tabNewsBtn = document.getElementById('tabNewsBtn');
+      const tabSpinBtn = document.getElementById('tabSpinBtn');
+      const tableTitle = document.getElementById('tableTitle');
+
+      tabRewardsBtn.className = 'btn btn-secondary';
+      tabQuestsBtn.className = 'btn btn-secondary';
+      tabNewsBtn.className = 'btn btn-secondary';
+      if (tabSpinBtn) tabSpinBtn.className = 'btn btn-secondary';
+
+      if (tab === 'rewards') {
+        tabRewardsBtn.className = 'btn btn-primary';
+        tableTitle.textContent = 'รายการของรางวัลสะสม';
+      } else if (tab === 'quests') {
+        tabQuestsBtn.className = 'btn btn-primary';
+        tableTitle.textContent = 'รายการเควสภารกิจ';
+      } else if (tab === 'news') {
+        tabNewsBtn.className = 'btn btn-primary';
+        tableTitle.textContent = 'รายการข่าวประชาสัมพันธ์ล่าสุด';
+      } else {
+        if (tabSpinBtn) tabSpinBtn.className = 'btn btn-primary';
+        tableTitle.textContent = 'รายการรางวัลสไลซ์วงล้อสุ่มนำโชค';
+      }
+
+      loadData();
+    }
+
+    function openAddModal() {
+      if (activeTab === 'rewards') {
+        document.getElementById('rewardForm').reset();
+        document.getElementById('rewardModal').classList.add('show');
+      } else if (activeTab === 'quests') {
+        document.getElementById('questForm').reset();
+        document.getElementById('questModal').classList.add('show');
+      } else if (activeTab === 'news') {
+        document.getElementById('newsForm').reset();
+        document.getElementById('newsModal').classList.add('show');
+      } else {
+        document.getElementById('spinForm').reset();
+        document.getElementById('spinModal').classList.add('show');
+      }
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('show');
+    }
+
+    // Forms submits handlers
+    document.getElementById('rewardForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const icon = document.getElementById('rewIcon').value.trim();
+      const title = document.getElementById('rewTitle').value.trim();
+      const cost = parseInt(document.getElementById('rewCost').value);
+      const desc = document.getElementById('rewDesc').value.trim();
+      const actionText = document.getElementById('rewActionText').value.trim();
+      const redirect = document.getElementById('rewRedirect').value.trim();
+
+      try {
+        DB.addRewardItem(icon, title, cost, desc, actionText, redirect);
+        closeModal('rewardModal');
+        loadData();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    document.getElementById('questForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = document.getElementById('qId').value.trim();
+      const title = document.getElementById('qTitle').value.trim();
+      const desc = document.getElementById('qDesc').value.trim();
+      const target = parseInt(document.getElementById('qTarget').value);
+      const points = parseInt(document.getElementById('qPoints').value);
+      const type = document.getElementById('qType').value;
+
+      try {
+        DB.addQuest(id, title, desc, target, points, type);
+        closeModal('questModal');
+        loadData();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    document.getElementById('newsForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const icon = document.getElementById('nIcon').value.trim();
+      const title = document.getElementById('nTitle').value.trim();
+      const date = document.getElementById('nDate').value.trim();
+      const desc = document.getElementById('nDesc').value.trim();
+
+      try {
+        DB.addNews(icon, title, date, desc);
+        closeModal('newsModal');
+        loadData();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    document.getElementById('spinForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const label = document.getElementById('spLabel').value.trim();
+      const type = document.getElementById('spType').value;
+      const value = document.getElementById('spValue').value.trim();
+      const weight = parseFloat(document.getElementById('spWeight').value);
+      const color = document.getElementById('spColor').value.trim();
+
+      try {
+        DB.addSpinPrize(label, type, value, weight, color);
+        closeModal('spinModal');
+        loadData();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    // Delete handlers
+    window.deleteItem = function(id) {
+      if (!confirm('คุณแน่ใจว่าต้องการลบรายการนี้ออกจากระบบใช่หรือไม่?')) return;
+      try {
+        if (activeTab === 'rewards') {
+          DB.deleteRewardItem(id);
+        } else if (activeTab === 'quests') {
+          DB.deleteQuest(id);
+        } else if (activeTab === 'news') {
+          DB.deleteNews(id);
+        } else {
+          DB.deleteSpinPrize(id);
+        }
+        loadData();
+      } catch (err) {
+        alert(err.message);
+      }
+    };
+
+    function loadData() {
+      const tbody = document.getElementById('dataTableBody');
+      const noData = document.getElementById('noDataMsg');
+      const headers = document.getElementById('tableHeaders');
+
+      tbody.innerHTML = '';
+      noData.style.display = 'none';
+
+      if (activeTab === 'rewards') {
+        headers.innerHTML = `
+          <th>ไอคอน</th>
+          <th>ของรางวัล</th>
+          <th>แต้มที่ใช้แลก</th>
+          <th>คำอธิบาย</th>
+          <th>ลิงก์ต่อท้าย</th>
+          <th>การจัดการ</th>
+        `;
+
+        const rewardsList = DB.getRewardItems();
+        if (rewardsList.length === 0) {
+          noData.style.display = 'block';
+          return;
+        }
+
+        rewardsList.forEach(item => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td style="font-size: 1.8rem;">${item.icon}</td>
+            <td><strong>${item.title}</strong></td>
+            <td><span style="color: var(--accent-cyan); font-weight: 700;">${item.cost} แต้ม</span></td>
+            <td><span style="font-size: 0.85rem; color: var(--text-sub);">${item.desc}</span></td>
+            <td><span style="font-size: 0.8rem; font-family: monospace;">${item.redirect || '-'}</span></td>
+            <td>
+              <button class="btn btn-secondary" onclick="deleteItem('${item.id}')" style="padding: 6px 12px; border-color: var(--accent-red); color: var(--accent-red); font-size: 0.8rem;">🗑️ ลบ</button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+
+      } else if (activeTab === 'quests') {
+        headers.innerHTML = `
+          <th>รหัสเควส (ID)</th>
+          <th>หัวข้อภารกิจ</th>
+          <th>คำอธิบาย</th>
+          <th>เป้าหมาย</th>
+          <th>แต้มรางวัล</th>
+          <th>ประเภท</th>
+          <th>การจัดการ</th>
+        `;
+
+        const questsList = DB.getQuests();
+        if (questsList.length === 0) {
+          noData.style.display = 'block';
+          return;
+        }
+
+        questsList.forEach(item => {
+          const row = document.createElement('tr');
+          let qBadge = '';
+          if (item.type === 'daily') qBadge = '<span style="color:#00f0ff; border:1px solid #00f0ff; padding:2px 6px; font-size:0.75rem; border-radius:4px;">รายวัน</span>';
+          else if (item.type === 'weekly') qBadge = '<span style="color:#39ff14; border:1px solid #39ff14; padding:2px 6px; font-size:0.75rem; border-radius:4px;">รายสัปดาห์</span>';
+          else qBadge = '<span style="color:#f953c6; border:1px solid #f953c6; padding:2px 6px; font-size:0.75rem; border-radius:4px;">เกียรติยศ</span>';
+
+          row.innerHTML = `
+            <td><code style="color: var(--accent-cyan); font-family: monospace;">${item.id}</code></td>
+            <td><strong>${item.title}</strong></td>
+            <td><span style="font-size: 0.85rem; color: var(--text-sub);">${item.desc}</span></td>
+            <td><span style="font-weight: 700;">${item.target} ครั้ง</span></td>
+            <td><span style="color: #39ff14; font-weight: 700;">+${item.points} แต้ม</span></td>
+            <td>${qBadge}</td>
+            <td>
+              <button class="btn btn-secondary" onclick="deleteItem('${item.id}')" style="padding: 6px 12px; border-color: var(--accent-red); color: var(--accent-red); font-size: 0.8rem;">🗑️ ลบ</button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+
+      } else if (activeTab === 'news') {
+        headers.innerHTML = `
+          <th>ไอคอน</th>
+          <th>หัวข้อข่าว</th>
+          <th>วันที่ประชาสัมพันธ์</th>
+          <th>รายละเอียดข่าวประชาสัมพันธ์</th>
+          <th>การจัดการ</th>
+        `;
+
+        const newsList = DB.getNews();
+        if (newsList.length === 0) {
+          noData.style.display = 'block';
+          return;
+        }
+
+        newsList.forEach(item => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td style="font-size: 1.8rem;">${item.icon}</td>
+            <td><strong>${item.title}</strong></td>
+            <td style="font-size: 0.85rem; color: var(--accent-cyan); white-space: nowrap;">📅 ${item.date}</td>
+            <td><span style="font-size: 0.85rem; color: var(--text-sub);">${item.desc}</span></td>
+            <td>
+              <button class="btn btn-secondary" onclick="deleteItem('${item.id}')" style="padding: 6px 12px; border-color: var(--accent-red); color: var(--accent-red); font-size: 0.8rem;">🗑️ ลบ</button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      } else {
+        headers.innerHTML = `
+          <th>สีของสไลซ์</th>
+          <th>ของรางวัล (Label)</th>
+          <th>ประเภทรางวัล</th>
+          <th>มูลค่าสุ่ม</th>
+          <th>น้ำหนักน้ำหนัก (Weight)</th>
+          <th>คำนวณโอกาส (%)</th>
+          <th>การจัดการ</th>
+        `;
+
+        const spinList = DB.getSpinPrizes();
+        if (spinList.length === 0) {
+          noData.style.display = 'block';
+          return;
+        }
+
+        const totalWeight = spinList.reduce((acc, p) => acc + (parseFloat(p.weight) || 0), 0);
+
+        spinList.forEach(item => {
+          const row = document.createElement('tr');
+          const pct = totalWeight > 0 ? ((parseFloat(item.weight) / totalWeight) * 100).toFixed(1) : 0;
+          
+          row.innerHTML = `
+            <td>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="display:inline-block; width:20px; height:20px; border-radius:4px; border:1px solid rgba(255,255,255,0.2); background:${item.color};"></span>
+                <code style="font-size:0.75rem; color:var(--text-sub);">${item.color}</code>
+              </div>
+            </td>
+            <td><strong>${item.label}</strong></td>
+            <td><span style="font-size:0.85rem; color:var(--accent-cyan);">${item.type === 'points' ? 'คะแนนสะสม' : 'คูปองรางวัล'}</span></td>
+            <td><code style="font-family: monospace;">${item.value}</code></td>
+            <td><span style="font-weight:700;">${item.weight}</span></td>
+            <td><span class="neon-text-green" style="font-weight:700;">${pct}%</span></td>
+            <td>
+              <button class="btn btn-secondary" onclick="deleteItem('${item.id}')" style="padding: 6px 12px; border-color: var(--accent-red); color: var(--accent-red); font-size: 0.8rem;">🗑️ ลบ</button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
+    }
+
+    // Initial render
+    loadData();
+
+    // Storage updates sync
+    window.addEventListener('storage', () => {
+      loadData();
+    });
+  </script>
+</body>
+</html>

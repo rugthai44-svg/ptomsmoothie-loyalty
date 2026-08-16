@@ -24,8 +24,8 @@
 
       <form id="adminLoginForm">
         <div class="form-group">
-          <label class="form-label" for="emailInput">อีเมลแอดมิน</label>
-          <input class="form-input" type="email" id="emailInput" placeholder="admin@gmail.com" required>
+          <label class="form-label" for="usernameInput">ชื่อผู้ใช้แอดมิน</label>
+          <input class="form-input" type="text" id="usernameInput" placeholder="กรอกชื่อผู้ใช้ (admin)" maxlength="10" required>
         </div>
 
         <div class="form-group">
@@ -58,7 +58,7 @@
     const rememberedAdmin = localStorage.getItem('ptom_remember_admin');
     if (rememberedAdmin) {
       const data = JSON.parse(rememberedAdmin);
-      document.getElementById('emailInput').value = data.email;
+      document.getElementById('usernameInput').value = data.username;
       document.getElementById('passwordInput').value = data.password;
       document.getElementById('rememberAdminInput').checked = true;
     }
@@ -70,16 +70,16 @@
       e.preventDefault();
       errorBox.style.display = 'none';
 
-      const email = document.getElementById('emailInput').value;
+      const username = document.getElementById('usernameInput').value;
       const pass = document.getElementById('passwordInput').value;
       const rememberAdmin = document.getElementById('rememberAdminInput').checked;
 
-      const success = DB.adminLogin(email, pass);
+      const success = DB.adminLogin(username, pass);
 
       if (success) {
         if (rememberAdmin) {
           localStorage.setItem('ptom_remember_admin', JSON.stringify({
-            email: email,
+            username: username,
             password: pass
           }));
         } else {

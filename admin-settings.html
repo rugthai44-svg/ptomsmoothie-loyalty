@@ -25,6 +25,7 @@
           <li class="admin-nav-item"><a href="admin-members.html">👥 จัดการสมาชิก (Members)</a></li>
           <li class="admin-nav-item"><a href="admin-scans.html">📷 ประวัติสะสมแต้ม (Scans)</a></li>
           <li class="admin-nav-item"><a href="admin-menu.html">🍹 จัดการเมนูร้าน (Products)</a></li>
+          <li class="admin-nav-item"><a href="admin-rewards.html">🎁 จัดการระบบรางวัล (Rewards)</a></li>
           <li class="admin-nav-item"><a href="admin-ingredients.html">🧪 วัตถุดิบปั่นสมูทตี้ (Ingredients)</a></li>
           <li class="admin-nav-item active"><a href="admin-settings.html">⚙️ ตั้งค่าระบบ (Settings)</a></li>
         </ul>
@@ -56,19 +57,43 @@
           <div id="successBox" style="color: var(--accent-green); background: rgba(57, 255, 20, 0.1); border: 1px solid var(--accent-green); padding: 10px; border-radius: 8px; margin-bottom: 16px; display: none; font-size: 0.9rem; text-align: center;"></div>
 
           <form id="adminSettingsForm">
-            <div class="form-group">
-              <label class="form-label" for="adminNameInput">ชื่อจริงผู้ควบคุมระบบ</label>
-              <input class="form-input" type="text" id="adminNameInput" required>
-            </div>
-            
-            <div class="form-group">
-              <label class="form-label" for="adminEmailInput">อีเมลแอดมิน</label>
-              <input class="form-input" type="email" id="adminEmailInput" required>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div class="form-group">
+                <label class="form-label" for="adminNameInput">ชื่อจริง</label>
+                <input class="form-input" type="text" id="adminNameInput" maxlength="50" required>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label" for="adminLastnameInput">นามสกุล</label>
+                <input class="form-input" type="text" id="adminLastnameInput" maxlength="50" required>
+              </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="adminPassInput">รหัสผ่านความปลอดภัยใหม่ (ปล่อยว่างหากต้องการรหัสเดิม)</label>
-              <input class="form-input" type="password" id="adminPassInput" placeholder="ใส่รหัสผ่านแอดมินใหม่">
+              <label class="form-label" for="adminUserInput">ชื่อผู้ใช้แอดมิน (Username)</label>
+              <input class="form-input" type="text" id="adminUserInput" maxlength="10" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="adminPassInput">รหัสผ่านความปลอดภัยใหม่ (สูงสุด 10 ตัวอักษร, ปล่อยว่างหากต้องการรหัสเดิม)</label>
+              <input class="form-input" type="password" id="adminPassInput" placeholder="ใส่รหัสผ่านแอดมินใหม่" maxlength="10">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div class="form-group">
+                <label class="form-label" for="adminIdcardInput">รหัสบัตรประชาชน</label>
+                <input class="form-input" type="text" id="adminIdcardInput" placeholder="เลข 13 หลัก" maxlength="13">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="adminTelInput">เบอร์โทรศัพท์</label>
+                <input class="form-input" type="text" id="adminTelInput" placeholder="เบอร์โทร 10 หลัก" maxlength="10">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="adminAddressInput">ที่อยู่</label>
+              <input class="form-input" type="text" id="adminAddressInput" placeholder="ที่อยู่ (สูงสุด 50 ตัวอักษร)" maxlength="50">
             </div>
 
             <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">บันทึกข้อมูลระบบ</button>
@@ -88,6 +113,22 @@
               <input class="form-input" type="text" id="lineTokenInput" placeholder="ใส่ Token ของคุณที่นี่ (ขึ้นต้นด้วย eyJ...)">
             </div>
             <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">บันทึกการตั้งค่าไลน์</button>
+          </form>
+        </div>
+
+        <!-- Google Sign-In API Configuration Card -->
+        <div class="glass-card">
+          <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 8px;">🔑 ตั้งค่าการเข้าสู่ระบบด้วย Google (Google OAuth Settings)</h3>
+          <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 20px;">ระบุรหัส Google Client ID ที่ได้จาก Google Cloud Console เพื่อเปิดใช้งานปุ่มสมัครสมาชิกและล็อกอินผ่าน Google บัญชีจริง</p>
+          
+          <div id="googleSuccessBox" style="color: var(--accent-green); background: rgba(57, 255, 20, 0.1); border: 1px solid var(--accent-green); padding: 10px; border-radius: 8px; margin-bottom: 16px; display: none; font-size: 0.9rem; text-align: center;"></div>
+          
+          <form id="googleSettingsForm">
+            <div class="form-group">
+              <label class="form-label" for="googleClientIdInput">Google OAuth Client ID</label>
+              <input class="form-input" type="text" id="googleClientIdInput" placeholder="ใส่รหัส Client ID เช่น xxxxxxxx.apps.googleusercontent.com">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">บันทึกการตั้งค่า Google</button>
           </form>
         </div>
 
@@ -126,14 +167,25 @@
 
     // Populate credentials form fields
     function initForm() {
-      const admin = JSON.parse(localStorage.getItem('ptom_admin'));
+      const admins = JSON.parse(localStorage.getItem('ptom_admins')) || [];
+      const admin = admins[0];
       if (!admin) return;
 
-      document.getElementById('adminNameInput').value = admin.fullName;
-      document.getElementById('adminEmailInput').value = admin.email;
+      document.getElementById('adminNameInput').value = admin.admin_name || '';
+      document.getElementById('adminLastnameInput').value = admin.admin_lastname || '';
+      document.getElementById('adminUserInput').value = admin.admin_user || '';
+      document.getElementById('adminIdcardInput').value = admin.admin_idcard || '';
+      document.getElementById('adminTelInput').value = admin.admin_tel || '';
+      document.getElementById('adminAddressInput').value = admin.admin_address || '';
 
       // Load LINE Token
       document.getElementById('lineTokenInput').value = localStorage.getItem('ptom_line_channel_access_token') || '';
+
+      // Load Google Client ID
+      const googleInput = document.getElementById('googleClientIdInput');
+      if (googleInput) {
+        googleInput.value = localStorage.getItem('ptom_google_client_id') || '437099303581-i32b36qrrv0jggoh2at1cakcsushn0ja.apps.googleusercontent.com';
+      }
     }
 
     initForm();
@@ -147,24 +199,32 @@
       errorBox.style.display = 'none';
       successBox.style.display = 'none';
 
-      const fullName = document.getElementById('adminNameInput').value;
-      const email = document.getElementById('adminEmailInput').value;
+      const name = document.getElementById('adminNameInput').value;
+      const lastname = document.getElementById('adminLastnameInput').value;
+      const username = document.getElementById('adminUserInput').value;
       const newPass = document.getElementById('adminPassInput').value;
+      const idcard = document.getElementById('adminIdcardInput').value;
+      const tel = document.getElementById('adminTelInput').value;
+      const address = document.getElementById('adminAddressInput').value;
 
       try {
-        const adminObj = JSON.parse(localStorage.getItem('ptom_admin'));
-        adminObj.fullName = fullName;
-        adminObj.email = email;
+        const admins = JSON.parse(localStorage.getItem('ptom_admins')) || [];
+        if (admins.length === 0) {
+          admins.push({});
+        }
+        const adminObj = admins[0];
+        adminObj.admin_name = name;
+        adminObj.admin_lastname = lastname;
+        adminObj.admin_user = username;
+        adminObj.admin_idcard = idcard;
+        adminObj.admin_tel = tel;
+        adminObj.admin_address = address;
+
         if (newPass) {
-          if (newPass.length < 4) {
-            errorBox.textContent = 'รหัสผ่านแอดมินใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร';
-            errorBox.style.display = 'block';
-            return;
-          }
-          adminObj.password = newPass;
+          adminObj.admin_password = newPass;
         }
 
-        localStorage.setItem('ptom_admin', JSON.stringify(adminObj));
+        localStorage.setItem('ptom_admins', JSON.stringify(admins));
         
         successBox.textContent = 'อัปเดตข้อมูลบัญชีผู้ควบคุมระบบร้านสำเร็จเรียบร้อย!';
         successBox.style.display = 'block';
@@ -197,6 +257,22 @@
       lineSuccessBox.style.display = 'block';
       
       DB.logActivity('admin', 'ตั้งค่า LINE Token', 'บันทึก/อัปเดต LINE Bot Channel Access Token');
+    });
+
+    const googleForm = document.getElementById('googleSettingsForm');
+    const googleSuccessBox = document.getElementById('googleSuccessBox');
+
+    googleForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      googleSuccessBox.style.display = 'none';
+
+      const clientId = document.getElementById('googleClientIdInput').value.trim();
+      localStorage.setItem('ptom_google_client_id', clientId);
+
+      googleSuccessBox.textContent = 'บันทึก Google OAuth Client ID สำหรับระบบเข้าสู่ระบบด้วย Google จริงสำเร็จ!';
+      googleSuccessBox.style.display = 'block';
+
+      DB.logActivity('admin', 'ตั้งค่า Google Client ID', 'บันทึก/อัปเดต Google OAuth Client ID');
     });
 
     // Wipe database function

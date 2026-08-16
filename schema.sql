@@ -20,6 +20,19 @@ DROP TABLE IF EXISTS ptom_user_coupons CASCADE;
 DROP TABLE IF EXISTS ptom_orders CASCADE;
 DROP TABLE IF EXISTS ptom_products CASCADE;
 DROP TABLE IF EXISTS ptom_users CASCADE;
+DROP TABLE IF EXISTS ptom_admins CASCADE;
+-- 0. ADMINS TABLE
+CREATE TABLE ptom_admins (
+    admin_id SERIAL PRIMARY KEY,
+    admin_user VARCHAR(10) NOT NULL,
+    admin_password VARCHAR(10) NOT NULL,
+    admin_name VARCHAR(50) NOT NULL,
+    admin_lastname VARCHAR(50) NOT NULL,
+    admin_idcard VARCHAR(13),
+    admin_tel VARCHAR(10),
+    admin_address VARCHAR(50),
+    admin_created DATE DEFAULT CURRENT_DATE
+);
 
 -- 1. USERS TABLE
 CREATE TABLE ptom_users (
@@ -200,3 +213,7 @@ INSERT INTO ptom_badges (id, title, description, icon, requirement_type, require
 ('early_bird', 'ตื่นแต่เช้ามาดื่มปั่น', 'สั่งสมูทตี้ก่อนเวลา 10:00 น.', '🌅', 'early_orders', 1),
 ('big_spender', 'ราชาสายเปย์', 'มียอดซื้อสะสมเกิน 500 บาท', '💰', 'total_spend', 500),
 ('radiant_champion', 'ล้านน้ำปั่นตัวจริง', 'เข้าสู่ระดับแรงค์ Radiant (แต้มสะสม 800 แต้ม)', '👑', 'points', 800);
+
+-- Admins
+INSERT INTO ptom_admins (admin_user, admin_password, admin_name, admin_lastname, admin_idcard, admin_tel, admin_address) VALUES
+('admin', '1234', 'สมชาย', 'ใจดี', '1234567890123', '0812345678', 'ร้านสมูทตี้');

@@ -208,7 +208,7 @@
       </div>
     </div>
 
-    <h2 style="text-align: center; margin-bottom: 8px; font-size: 1.8rem; font-weight: 800;">📋 เมนูเครื่องดื่ม (60 รายการแนะนำ)</h2>
+    <h2 style="text-align: center; margin-bottom: 8px; font-size: 1.8rem; font-weight: 800;" id="menuHeaderTitle">📋 เมนูเครื่องดื่ม (โหลดข้อมูล...)</h2>
     <p style="text-align: center; color: var(--text-sub); margin-bottom: 40px; font-size: 0.95rem;">เลือกเมนูที่ต้องการจอง ปรับแต่งระดับความหวาน/ท็อปปิ้ง และระบุเวลารับเครื่องดื่ม</p>
 
     <!-- Filters -->
@@ -403,47 +403,56 @@
     }
     updateNavbar();
 
-    // Fetch products from database
-    const dbProducts = DB.getProducts();
-    
-    // Map database products to client menuItems
-    const menuItems = dbProducts.map(p => {
-      // Map category to client categories (smoothie, cold, hot, snacks, seasonal)
-      let cat = 'smoothie';
-      const dbCat = (p.category || '').toLowerCase();
-      if (dbCat === 'coffee' || dbCat === 'tea' || dbCat === 'soda' || dbCat === 'cold') {
-        cat = 'cold';
-      } else if (dbCat === 'hot') {
-        cat = 'hot';
-      } else if (dbCat === 'snacks' || dbCat === 'snack') {
-        cat = 'snacks';
-      } else if (dbCat === 'seasonal') {
-        cat = 'seasonal';
-      } else {
-        // signature, smoothies, healthy, etc.
-        cat = 'smoothie';
-      }
-
-      // Map tag (recommended / out of stock)
-      let tag = p.is_recommended ? 'เมนูแนะนำ' : '';
-      if (p.is_out_of_stock) {
-        tag = 'สินค้าหมด';
-      }
-
-      return {
-        id: p.id,
-        title: p.name,
-        desc: p.description || p.name,
-        price: parseFloat(p.price),
-        category: cat,
-        tag: tag || p.category || 'เครื่องดื่ม',
-        isOutOfStock: !!p.is_out_of_stock,
-        imageUrl: p.image_url || ''
-      };
-    });
-
-    // Render Menu Cards
+    let menuItems = [];
     let activeFilter = 'all';
+
+    function loadAndRenderMenu() {
+      const dbProducts = DB.getProducts();
+      
+      menuItems = dbProducts.map(p => {
+        let cat = 'smoothie';
+        const dbCat = (p.category || '').toLowerCase();
+        if (dbCat === 'coffee' || dbCat === 'tea' || dbCat === 'soda' || dbCat === 'cold') {
+          cat = 'cold';
+        } else if (dbCat === 'hot') {
+          cat = 'hot';
+        } else if (dbCat === 'snacks' || dbCat === 'snack') {
+          cat = 'snacks';
+        } else if (dbCat === 'seasonal') {
+          cat = 'seasonal';
+        } else {
+          cat = 'smoothie';
+        }
+
+        let tag = p.is_recommended ? 'เมนูแนะนำ' : '';
+        if (p.is_out_of_stock) {
+          tag = 'สินค้าหมด';
+        }
+
+        return {
+          id: p.id,
+          title: p.name,
+          desc: p.description || p.name,
+          price: parseFloat(p.price),
+          category: cat,
+          tag: tag || p.category || 'เครื่องดื่ม',
+          isOutOfStock: !!p.is_out_of_stock,
+          imageUrl: p.image_url || ''
+        };
+      });
+
+      const headerTitle = document.getElementById('menuHeaderTitle');
+      if (headerTitle) {
+        headerTitle.textContent = `📋 เมนูเครื่องดื่ม (${menuItems.length} รายการแนะนำ)`;
+      }
+
+      if (activeFilter === 'all') {
+        renderMenu(menuItems);
+      } else {
+        const filtered = menuItems.filter(item => item.category === activeFilter);
+        renderMenu(filtered);
+      }
+    }
     function renderMenu(items) {
       const grid = document.getElementById('menuGrid');
       grid.innerHTML = '';
@@ -894,11 +903,12 @@
     }
 
     // Initial load
-    renderMenu(menuItems);
+    loadAndRenderMenu();
 
     // Sync other tabs
     window.addEventListener('storage', () => {
       updateNavbar();
+      loadAndRenderMenu();
     });
   </script>
 </body>

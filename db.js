@@ -169,7 +169,7 @@ async function syncFromSupabase() {
         // Self-healing merge: Keep local points if they are higher (e.g. from offline local checkin/spin)
         const localUsers = JSON.parse(localStorage.getItem('ptom_users')) || [];
         const mergedUsers = mappedUsers.map(remoteUser => {
-          const localUser = localUsers.find(u => u.username === remoteUser.username);
+          const localUser = localUsers.find(u => u.username.toLowerCase() === remoteUser.username.toLowerCase());
           if (localUser) {
             const keepLocal = (localUser.points > remoteUser.points) || (localUser.exp > remoteUser.exp);
             if (keepLocal) {
@@ -192,7 +192,7 @@ async function syncFromSupabase() {
         const curUser = localStorage.getItem('ptom_current_user');
         if (curUser) {
           const parsed = JSON.parse(curUser);
-          const fresh = mergedUsers.find(u => u.username === parsed.username);
+          const fresh = mergedUsers.find(u => u.username.toLowerCase() === parsed.username.toLowerCase());
           if (fresh) {
             localStorage.setItem('ptom_current_user', JSON.stringify(fresh));
           }
@@ -341,6 +341,12 @@ async function syncFromSupabase() {
       }
     }
 
+    // 8. Sync quests definition
+    const remoteQuests = await sbQuery('ptom_quests?select=*');
+    if (remoteQuests && remoteQuests.length > 0) {
+      localStorage.setItem('ptom_quests_list', JSON.stringify(remoteQuests));
+    }
+
     // Trigger UI updates
     window.dispatchEvent(new Event('storage'));
     console.log('Successfully synchronized with Supabase!');
@@ -383,7 +389,7 @@ async function syncFromSupabase() {
     localStorage.setItem('ptom_users', JSON.stringify(seedUsers));
   }
 
-  if (!localStorage.getItem('ptom_products') || JSON.parse(localStorage.getItem('ptom_products')).length < 18) {
+  if (!localStorage.getItem('ptom_products') || JSON.parse(localStorage.getItem('ptom_products')).length === 0) {
     const seedProducts = [
       { id: '1', name: 'อะโวคาโดน้ำผึ้งปั่น', price: 75, category: 'Signature', is_recommended: true, is_out_of_stock: false, image_url: '' },
       { id: '2', name: 'สตรอว์เบอร์รีโยเกิร์ตปั่น', price: 65, category: 'Smoothies', is_recommended: false, is_out_of_stock: false, image_url: '' },
@@ -410,12 +416,20 @@ async function syncFromSupabase() {
     localStorage.setItem('ptom_products', JSON.stringify(seedProducts));
   }
 
-  if (!localStorage.getItem('ptom_admin')) {
-    localStorage.setItem('ptom_admin', JSON.stringify({
-      email: 'admin@gmail.com',
-      password: '1234',
-      fullName: 'เจ้าของร้านล้านน้ำปั่น'
-    }));
+  if (!localStorage.getItem('ptom_admins')) {
+    localStorage.setItem('ptom_admins', JSON.stringify([
+      {
+        admin_id: 1,
+        admin_user: 'admin',
+        admin_password: '1234',
+        admin_name: 'สมชาย',
+        admin_lastname: 'ใจดี',
+        admin_idcard: '1234567890123',
+        admin_tel: '0812345678',
+        admin_address: 'ร้านสมูทตี้',
+        admin_created: new Date().toISOString().split('T')[0]
+      }
+    ]));
   }
 
   // Fallback defaults
@@ -521,7 +535,7 @@ const DB = {
     if (!userJson) return null;
     const user = JSON.parse(userJson);
     const users = this.getUsers();
-    const latestUser = users.find(u => u.username === user.username);
+    const latestUser = users.find(u => u.username.toLowerCase() === user.username.toLowerCase());
     if (latestUser) {
       localStorage.setItem('ptom_current_user', JSON.stringify(latestUser));
       return latestUser;
@@ -534,11 +548,11 @@ const DB = {
     if (!currentUser) throw new Error('กรุณาเข้าสู่ระบบก่อน');
 
     const users = this.getUsers();
-    const userIdx = users.findIndex(u => u.username === currentUser.username);
+    const userIdx = users.findIndex(u => u.username.toLowerCase() === currentUser.username.toLowerCase());
     if (userIdx === -1) throw new Error('ไม่พบข้อมูลผู้ใช้');
 
     if (email.toLowerCase().trim() !== currentUser.email.toLowerCase().trim()) {
-      const emailDup = users.find(u => u.email.toLowerCase() === email.toLowerCase().trim() && u.username !== currentUser.username);
+      const emailDup = users.find(u => u.email.toLowerCase() === email.toLowerCase().trim() && u.username.toLowerCase() !== currentUser.username.toLowerCase());
       if (emailDup) throw new Error('อีเมลนี้ถูกใช้ไปแล้ว');
     }
 
@@ -583,7 +597,7 @@ const DB = {
 
   addPoints(username, pointsGained, description, photoData = '') {
     const users = this.getUsers();
-    const userIdx = users.findIndex(u => u.username === username);
+    const userIdx = users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
     if (userIdx === -1) return null;
 
     const oldPoints = users[userIdx].points;
@@ -720,6 +734,111 @@ const DB = {
     return redeemId;
   },
 
+  redeemCustomReward(username, rewardType) {
+    const users = this.getUsers();
+    const userIdx = users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
+    if (userIdx === -1) throw new Error('ไม่พบชื่อผู้ใช้นี้');
+
+    let pointsCost = 0;
+    let couponTitle = '';
+    let couponType = '';
+    let expiresDays = 30;
+
+    const dynamicRewards = this.getRewardItems();
+    const dynamicRew = dynamicRewards.find(r => r.id === rewardType);
+
+    if (dynamicRew) {
+      pointsCost = dynamicRew.cost;
+      couponTitle = `คูปอง${dynamicRew.title} (แลกรับ)`;
+      couponType = dynamicRew.id;
+    } else if (rewardType === 'free_topping') {
+      pointsCost = 20;
+      couponTitle = 'คูปองฟรีท็อปปิ้ง (แลกรับ)';
+      couponType = 'free_topping';
+      expiresDays = 14;
+    } else if (rewardType === 'free_bakery') {
+      pointsCost = 30;
+      couponTitle = 'คูปองฟรีขนมขบเคี้ยว (แลกรับ)';
+      couponType = 'free_bakery';
+      expiresDays = 30;
+    } else if (rewardType === 'discount_15') {
+      pointsCost = 40;
+      couponTitle = 'คูปองส่วนลด 15 ฿ (แลกรับ)';
+      couponType = 'discount_15';
+      expiresDays = 30;
+    } else if (rewardType === 'discount_10') {
+      pointsCost = 50;
+      couponTitle = 'คูปองส่วนลด 10% (แลกรับ)';
+      couponType = 'discount_10';
+      expiresDays = 30;
+    } else if (rewardType === 'free_snack') {
+      pointsCost = 60;
+      couponTitle = 'คูปองฟรีแซนวิช/เบเกอรี่ (แลกรับ)';
+      couponType = 'free_snack';
+      expiresDays = 30;
+    } else if (rewardType === 'free_smoothie') {
+      pointsCost = 100;
+      couponTitle = 'คูปองน้ำปั่นฟรี 1 แก้ว (แลกรับ)';
+      couponType = 'free_smoothie';
+      expiresDays = 30;
+    } else {
+      throw new Error('ไม่พบประเภทของรางวัลนี้');
+    }
+
+    if (users[userIdx].points < pointsCost) {
+      throw new Error(`แต้มสะสมไม่เพียงพอ ต้องใช้ ${pointsCost} แต้ม สำหรับการแลกรางวัลนี้`);
+    }
+
+    // Deduct points
+    users[userIdx].points -= pointsCost;
+    this.saveUsers(users);
+
+    // Create the user coupon directly!
+    const newCoupon = this.addCoupon(username, couponTitle, couponType, expiresDays);
+
+    // Log redemption history (so it shows in their reward list)
+    const redeemId = 'REDEEM-' + Math.floor(100000 + Math.random() * 90000);
+    const newRedemption = {
+      id: redeemId,
+      username,
+      timestamp: new Date().toISOString(),
+      pointsDeducted: pointsCost,
+      status: 'Redeemed',
+      photoData: '' // No photo needed for digital coupon redemptions
+    };
+
+    const redemptions = JSON.parse(localStorage.getItem('ptom_redemptions')) || [];
+    redemptions.unshift(newRedemption);
+    localStorage.setItem('ptom_redemptions', JSON.stringify(redemptions));
+
+    this.logActivity(username, 'แลกรับรางวัล', `แลกคูปอง [${couponTitle}] สำเร็จ (ใช้ ${pointsCost} แต้ม)`);
+
+    // Update current user session
+    const curUser = this.getCurrentUser();
+    if (curUser && curUser.username.toLowerCase() === username.toLowerCase()) {
+      localStorage.setItem('ptom_current_user', JSON.stringify(users[userIdx]));
+    }
+
+    // Supabase sync
+    sbQuery(`ptom_users?username=eq.${encodeURIComponent(username)}`, 'PATCH', { points_balance: users[userIdx].points });
+    sbQuery('ptom_redemptions', 'POST', {
+      id: redeemId,
+      username,
+      points_deducted: pointsCost,
+      status: 'Redeemed',
+      photo_data: '',
+      timestamp: new Date().toISOString()
+    });
+
+    return {
+      redeemId,
+      coupon: newCoupon,
+      pointsCost,
+      currentPoints: users[userIdx].points
+    };
+  },
+
+
   // --- SMART ORDERING & SLIP VERIFICATION (PHASE 1) ---
   getPromptPayQR(amount) {
     const promptPayNumber = '0812345678'; // ล้านน้ำปั่น
@@ -730,6 +849,22 @@ const DB = {
     const users = this.getUsers();
     const userIdx = users.findIndex(u => u.username === username);
     if (userIdx === -1) throw new Error('ไม่พบข้อมูลผู้ใช้งาน');
+
+    // If it's a user coupon, mark it as used
+    if (appliedPromo) {
+      const coupons = this.getUserCoupons(username);
+      const coupon = coupons.find(c => {
+        const idLower = c.id.toLowerCase();
+        const promoLower = appliedPromo.trim().toLowerCase();
+        if (idLower === promoLower) return true;
+        const isRealUuid = idLower.includes('-') && !idLower.startsWith('cpn-');
+        if (isRealUuid && `cpn-${idLower.split('-')[0]}` === promoLower) return true;
+        return false;
+      });
+      if (coupon && !coupon.isUsed) {
+        this.useCoupon(coupon.id);
+      }
+    }
 
     const orders = this.getOrders();
     const orderId = 'ORD-' + Math.floor(100000 + Math.random() * 90000);
@@ -1080,6 +1215,201 @@ const DB = {
     return redemptions;
   },
 
+  getRewardItems() {
+    const existing = localStorage.getItem('ptom_reward_items');
+    if (!existing) {
+      const defaultRewards = [
+        { id: 'free_topping', icon: '🔮', title: 'ฟรี ท็อปปิ้งเสริม', cost: 20, desc: 'เลือกท็อปปิ้ง ไข่มุกบุก / เมล็ดเจีย / เจลลี่ผลไม้ หรือเปลี่ยนนมสดเป็นนมโอ๊ตฟรี', actionText: 'แลกรับ (20 แต้ม)' },
+        { id: 'free_bakery', icon: '🍪', title: 'ฟรี ขนมขบเคี้ยว', cost: 30, desc: 'แลกรับขนมขบเคี้ยว / คุกกี้ หรือเบเกอรี่ฟรี 1 ซอง (มูลค่าสูงสุด 40 ฿)', actionText: 'แลกรับ (30 แต้ม)' },
+        { id: 'discount_15', icon: '💵', title: 'ส่วนลด 15 บาท', cost: 40, desc: 'คูปองส่วนลดมูลค่า 15 บาท สำหรับสั่งซื้อเครื่องดื่มแก้วโปรด (ไม่มีขั้นต่ำ)', actionText: 'แลกรับ (40 แต้ม)' },
+        { id: 'discount_10', icon: '🎟️', title: 'ส่วนลดท้ายบิล 10%', cost: 50, desc: 'คูปองลดราคาสินค้า 10% ทั้งเมนูเครื่องดื่มและท็อปปิ้งเพิ่มเติม', actionText: 'แลกรับ (50 แต้ม)' },
+        { id: 'free_snack', icon: '🥪', title: 'ฟรี แซนวิชอบร้อน', cost: 60, desc: 'แลกรับแซนวิชอบร้อน / ครัวซองต์อบชีสฟรี 1 ชิ้น (มูลค่าสูงสุด 60 ฿)', actionText: 'แลกรับ (60 แต้ม)' },
+        { id: 'free_smoothie', icon: '🥤', title: 'น้ำปั่นฟรี 1 แก้ว', cost: 100, desc: 'คูปองแลกเครื่องดื่มน้ำปั่นฟรี 1 แก้ว (แลกที่หน้าร้านโดยต้องใช้ภาพถ่ายแก้วยืนยัน)', actionText: 'แลกสิทธิ์ (100 แต้ม)', redirect: 'redemption.html' }
+      ];
+      localStorage.setItem('ptom_reward_items', JSON.stringify(defaultRewards));
+      return defaultRewards;
+    }
+    return JSON.parse(existing);
+  },
+  saveRewardItems(list) {
+    localStorage.setItem('ptom_reward_items', JSON.stringify(list));
+    window.dispatchEvent(new Event('storage'));
+  },
+  addRewardItem(icon, title, cost, desc, actionText, redirect = '') {
+    const list = this.getRewardItems();
+    const id = 'rew-' + Math.floor(100000 + Math.random() * 900000);
+    const newItem = { id, icon, title, cost: parseInt(cost) || 0, desc, actionText, redirect };
+    list.push(newItem);
+    this.saveRewardItems(list);
+    this.logActivity('admin', 'เพิ่มของรางวัลใหม่', `เพิ่มรางวัล [${title}] ราคา ${cost} แต้ม`);
+    return newItem;
+  },
+  deleteRewardItem(id) {
+    const list = this.getRewardItems();
+    const filtered = list.filter(item => item.id !== id);
+    if (list.length === filtered.length) throw new Error('ไม่พบของรางวัลนี้ในระบบ');
+    const title = list.find(item => item.id === id).title;
+    this.saveRewardItems(filtered);
+    this.logActivity('admin', 'ลบของรางวัล', `ลบของรางวัล [${title}] ออกจากระบบ`);
+  },
+  getNews() {
+    const existing = localStorage.getItem('ptom_news_list');
+    if (!existing) {
+      const defaultNews = [
+        {
+          id: '1',
+          icon: '🎉',
+          title: 'ฉลองเปิดตัวระบบสะสมแต้มแบบใหม่!',
+          date: '11 ส.ค. 2569',
+          desc: 'เพิ่มระบบแรงค์สะสมแต้มอัจฉริยะ ซื้อน้ำปั่นแก้วโปรดพร้อมสะสม EXP เพื่อเลื่อนแรงค์รับสิทธิพิเศษที่เหนือกว่า!'
+        },
+        {
+          id: '2',
+          icon: '🥭',
+          title: 'เมนูพิเศษต้อนรับฤดูกาล: มะม่วงอกร่องทองพรีเมียมปั่น',
+          date: '10 ส.ค. 2569',
+          desc: 'มะม่วงอกร่องทองคัดพิเศษ หวานหอมกลมกล่อม ปั่นคู่กับโยเกิร์ตแท้ชั้นดี ลองเลยวันนี้ที่เมนูน้ำปั่น!'
+        },
+        {
+          id: '3',
+          icon: '🧪',
+          title: 'เปิดห้องทดลองใหม่ Smoothie Lab!',
+          date: '08 ส.ค. 2569',
+          desc: 'คิดสูตรน้ำปั่นในฝันของคุณเอง เลือกวัตถุดิบและปรับแต่งระดับความหวานได้ตามใจชอบในหน้า Smoothie Lab 🧪'
+        }
+      ];
+      localStorage.setItem('ptom_news_list', JSON.stringify(defaultNews));
+      return defaultNews;
+    }
+    return JSON.parse(existing);
+  },
+  saveNews(list) {
+    localStorage.setItem('ptom_news_list', JSON.stringify(list));
+    window.dispatchEvent(new Event('storage'));
+  },
+  addNews(icon, title, date, desc) {
+    const list = this.getNews();
+    const id = 'news-' + Math.floor(100000 + Math.random() * 900000);
+    const newItem = { id, icon, title, date, desc };
+    list.unshift(newItem);
+    this.saveNews(list);
+    this.logActivity('admin', 'เพิ่มข่าวประชาสัมพันธ์', `เพิ่มข่าว [${title}]`);
+    return newItem;
+  },
+  deleteNews(id) {
+    const list = this.getNews();
+    const filtered = list.filter(item => item.id !== id);
+    if (list.length === filtered.length) throw new Error('ไม่พบข่าวนี้ในระบบ');
+    const title = list.find(item => item.id === id).title;
+    this.saveNews(filtered);
+    this.logActivity('admin', 'ลบข่าวประชาสัมพันธ์', `ลบข่าว [${title}]`);
+  },
+  adminApproveRedemption(redeemId) {
+    const redeems = this.getRedemptions();
+    const idx = redeems.findIndex(r => r.id === redeemId);
+    if (idx === -1) throw new Error('ไม่พบรายการแลกของรางวัลนี้');
+
+    const redeem = redeems[idx];
+    redeems[idx].status = 'Approved';
+    localStorage.setItem('ptom_redemptions', JSON.stringify(redeems));
+    window.dispatchEvent(new Event('storage'));
+
+    this.logActivity('admin', 'อนุมัติการแลกรางวัล', `อนุมัติคำขอแลกรางวัล [${redeemId}] ของ @${redeem.username}`);
+    this.sendLineNotification(redeem.username, `คำขอแลกรางวัลรหัส [${redeemId}] ได้รับการอนุมัติโดยบาริสต้าแล้ว ยินดีต้อนรับเครื่องดื่มแถมฟรีของคุณครับ! 🎉`);
+
+    // Supabase Sync
+    sbQuery(`ptom_redemptions?id=eq.${encodeURIComponent(redeemId)}`, 'PATCH', { status: 'Approved' });
+    return redeems[idx];
+  },
+  adminRejectRedemption(redeemId) {
+    const redeems = this.getRedemptions();
+    const idx = redeems.findIndex(r => r.id === redeemId);
+    if (idx === -1) throw new Error('ไม่พบรายการแลกของรางวัลนี้');
+
+    const redeem = redeems[idx];
+    const oldStatus = redeem.status;
+    if (oldStatus === 'Rejected') throw new Error('รายการนี้ถูกปฏิเสธไปแล้ว');
+
+    redeems[idx].status = 'Rejected';
+    localStorage.setItem('ptom_redemptions', JSON.stringify(redeems));
+    window.dispatchEvent(new Event('storage'));
+
+    // Refund points to user
+    const users = this.getUsers();
+    const uIdx = users.findIndex(u => u.username.toLowerCase() === redeem.username.toLowerCase());
+    if (uIdx !== -1) {
+      users[uIdx].points += redeem.pointsDeducted;
+      this.saveUsers(users);
+      // Supabase write
+      sbQuery(`ptom_users?username=eq.${encodeURIComponent(redeem.username)}`, 'PATCH', { points_balance: users[uIdx].points });
+      this.syncCurrentUser(redeem.username);
+    }
+
+    this.logActivity('admin', 'ปฏิเสธการแลกรางวัล', `ปฏิเสธคำขอ [${redeemId}] คืนแต้มให้ลูกค้า ${redeem.pointsDeducted} แต้ม`);
+    this.sendLineNotification(redeem.username, `ขออภัยด้วยครับ คำขอแลกรางวัลรหัส [${redeemId}] ของคุณไม่ได้รับอนุมัติ ระบบได้ทำการคืนคะแนนจำนวน ${redeem.pointsDeducted} แต้ม กลับเข้าบัญชีของคุณเรียบร้อยแล้วครับ ❌`);
+
+    // Supabase Sync
+    sbQuery(`ptom_redemptions?id=eq.${encodeURIComponent(redeemId)}`, 'PATCH', { status: 'Rejected' });
+    return redeems[idx];
+  },
+  deleteRedemption(redeemId) {
+    const redeems = this.getRedemptions();
+    const filtered = redeems.filter(r => r.id !== redeemId);
+    if (redeems.length === filtered.length) throw new Error('ไม่พบรายการแลกของรางวัลนี้');
+    localStorage.setItem('ptom_redemptions', JSON.stringify(filtered));
+    window.dispatchEvent(new Event('storage'));
+
+    this.logActivity('admin', 'ลบประวัติแลกรางวัล', `ลบประวัติการแลกรางวัลรหัส [${redeemId}] ออกจากระบบ`);
+
+    // Supabase Sync
+    sbQuery(`ptom_redemptions?id=eq.${encodeURIComponent(redeemId)}`, 'DELETE');
+  },
+
+  getSpinPrizes() {
+    const existing = localStorage.getItem('ptom_spin_prizes');
+    if (!existing) {
+      const defaultPrizes = [
+        { id: 'p1', label: '+1 คะแนน', type: 'points', value: 1, weight: 40, color: '#121e33' },
+        { id: 'p2', label: '+3 คะแนน', type: 'points', value: 3, weight: 30, color: '#00f0ff22' },
+        { id: 'p3', label: '+5 คะแนน', type: 'points', value: 5, weight: 15, color: '#121e33' },
+        { id: 'p4', label: 'ฟรีท็อปปิ้ง', type: 'coupon', value: 'free_topping', weight: 8, color: '#39ff1422' },
+        { id: 'p5', label: 'แจ็กพอต 10!', type: 'points', value: 10, weight: 5, color: '#ff386055' },
+        { id: 'p6', label: 'ขอบคุณค่ะ', type: 'points', value: 0, weight: 2, color: '#060b13' }
+      ];
+      localStorage.setItem('ptom_spin_prizes', JSON.stringify(defaultPrizes));
+      return defaultPrizes;
+    }
+    return JSON.parse(existing);
+  },
+  saveSpinPrizes(list) {
+    localStorage.setItem('ptom_spin_prizes', JSON.stringify(list));
+    window.dispatchEvent(new Event('storage'));
+  },
+  addSpinPrize(label, type, value, weight, color) {
+    const list = this.getSpinPrizes();
+    const id = 'prize-' + Math.floor(100000 + Math.random() * 900000);
+    const newPrize = {
+      id,
+      label: label.trim(),
+      type,
+      value: type === 'points' ? parseInt(value) || 0 : value.trim(),
+      weight: parseFloat(weight) || 0,
+      color: color.trim()
+    };
+    list.push(newPrize);
+    this.saveSpinPrizes(list);
+    this.logActivity('admin', 'เพิ่มรางวัลวงล้อนำโชค', `เพิ่มรางวัล [${label}] น้ำหนัก ${weight}`);
+    return newPrize;
+  },
+  deleteSpinPrize(id) {
+    const list = this.getSpinPrizes();
+    const filtered = list.filter(p => p.id !== id);
+    if (list.length === filtered.length) throw new Error('ไม่พบของรางวัลวงล้อนี้ในระบบ');
+    const label = list.find(p => p.id === id).label;
+    this.saveSpinPrizes(filtered);
+    this.logActivity('admin', 'ลบรางวัลวงล้อนำโชค', `ลบรางวัล [${label}] ออกจากระบบ`);
+  },
+
   // --- PROMO CODES & DISCOUNTS ---
   validatePromoCode(code, originalPrice, username = '', currentItemPrice = 0, currentToppingsPrice = 0) {
     if (!code) return { valid: false, message: 'กรุณากรอกรหัสส่วนลด' };
@@ -1091,7 +1421,8 @@ const DB = {
       const coupon = coupons.find(c => {
         const idLower = c.id.toLowerCase();
         if (idLower === cleanCode) return true;
-        if (idLower.includes('-') && `cpn-${idLower.split('-')[0]}` === cleanCode) return true;
+        const isRealUuid = idLower.includes('-') && !idLower.startsWith('cpn-');
+        if (isRealUuid && `cpn-${idLower.split('-')[0]}` === cleanCode) return true;
         return false;
       });
       
@@ -1110,9 +1441,18 @@ const DB = {
         if (coupon.couponType === 'discount_10') {
           discount = originalPrice * 0.10;
           label = `ส่วนลด 10% (${coupon.title})`;
+        } else if (coupon.couponType === 'discount_15') {
+          discount = 15;
+          label = `ส่วนลด 15 ฿ (${coupon.title})`;
         } else if (coupon.couponType === 'free_topping') {
           discount = currentToppingsPrice > 0 ? currentToppingsPrice : 10;
           label = `ฟรีท็อปปิ้ง (${coupon.title})`;
+        } else if (coupon.couponType === 'free_bakery') {
+          discount = currentItemPrice > 0 ? currentItemPrice : Math.min(originalPrice, 40);
+          label = `ฟรีขนมขบเคี้ยว (${coupon.title})`;
+        } else if (coupon.couponType === 'free_snack') {
+          discount = currentItemPrice > 0 ? currentItemPrice : Math.min(originalPrice, 60);
+          label = `ฟรีแซนวิช/เบเกอรี่ (${coupon.title})`;
         } else if (coupon.couponType === 'free_smoothie') {
           discount = currentItemPrice > 0 ? currentItemPrice : Math.min(originalPrice, 80);
           label = `ฟรีเครื่องดื่ม (${coupon.title})`;
@@ -1144,9 +1484,18 @@ const DB = {
       'NEWUSER': { type: 'percent', value: 15, minPrice: 0, label: 'ส่วนลดสำหรับลูกค้าใหม่ 15%' }
     };
     
-    const promo = promoCodes[cleanCode];
+    const promo = promoCodes[cleanCode.toUpperCase()];
     if (!promo) {
       return { valid: false, message: 'รหัสส่วนลดไม่ถูกต้อง' };
+    }
+
+    // Check if this user has already used this public promo code in their orders
+    if (username) {
+      const orders = this.getOrders(username);
+      const alreadyUsed = orders.some(o => o.appliedPromo && o.appliedPromo.trim().toUpperCase() === cleanCode.toUpperCase() && o.status !== 'Rejected');
+      if (alreadyUsed) {
+        return { valid: false, message: `คุณเคยใช้งานรหัสส่วนลด [${cleanCode.toUpperCase()}] นี้ไปแล้ว` };
+      }
     }
     
     if (originalPrice < promo.minPrice) {
@@ -1229,9 +1578,10 @@ const DB = {
   },
 
   // --- ADMIN AUTH & CONTROL ---
-  adminLogin(email, password) {
-    const admin = JSON.parse(localStorage.getItem('ptom_admin'));
-    if (admin.email === email && admin.password === password) {
+  adminLogin(username, password) {
+    const admins = JSON.parse(localStorage.getItem('ptom_admins')) || [];
+    const admin = admins.find(a => a.admin_user === username && a.admin_password === password);
+    if (admin) {
       localStorage.setItem('ptom_admin_session', 'active');
       return true;
     }
@@ -1248,9 +1598,9 @@ const DB = {
 
   syncCurrentUser(username) {
     const curUser = this.getCurrentUser();
-    if (curUser && curUser.username === username) {
+    if (curUser && curUser.username.toLowerCase() === username.toLowerCase()) {
       const users = this.getUsers();
-      const latestUser = users.find(u => u.username === username);
+      const latestUser = users.find(u => u.username.toLowerCase() === username.toLowerCase());
       if (latestUser) {
         localStorage.setItem('ptom_current_user', JSON.stringify(latestUser));
       }
@@ -1349,13 +1699,60 @@ const DB = {
 
   // --- QUESTS SYSTEM (PHASE 2) ---
   getQuests() {
-    // Standard system static quests
-    return [
-      { id: 'daily_checkin', title: 'เช็คอินประจำวัน', desc: 'รับแต้มฟรีง่ายๆ เพียงกดปุ่มเช็คอินรายวัน', target: 1, points: 2, type: 'daily' },
-      { id: 'weekly_smoothie_5', title: 'สั่งน้ำปั่นครบ 5 แก้ว', desc: 'สะสมการกินน้ำปั่นให้ครบ 5 แก้วในสัปดาห์นี้', target: 5, points: 15, type: 'weekly' },
-      { id: 'achievement_first_order', title: 'จุดเริ่มต้นคนรักน้ำปั่น', desc: 'สั่งน้ำปั่นแก้วแรกผ่านแอปพลิเคชัน', target: 1, points: 5, type: 'achievement' },
-      { id: 'achievement_radiant_rank', title: 'แรงค์สูงสุดของร้าน (Radiant)', desc: 'สะสมแต้มให้ถึง 800 เพื่อขึ้นสู่ระดับสูงสุด', target: 800, points: 100, type: 'achievement' }
-    ];
+    const existing = localStorage.getItem('ptom_quests_list');
+    if (!existing) {
+      const defaultQuests = [
+        { id: 'daily_checkin', title: 'เช็คอินประจำวัน', desc: 'รับแต้มฟรีง่ายๆ เพียงกดปุ่มเช็คอินรายวัน', target_amount: 1, reward_points: 2, quest_type: 'daily' },
+        { id: 'weekly_smoothie_5', title: 'สั่งน้ำปั่นครบ 5 แก้ว', desc: 'สะสมการกินน้ำปั่นให้ครบ 5 แก้วในสัปดาห์นี้', target_amount: 5, reward_points: 15, quest_type: 'weekly' },
+        { id: 'achievement_first_order', title: 'จุดเริ่มต้นคนรักน้ำปั่น', desc: 'สั่งน้ำปั่นแก้วแรกผ่านแอปพลิเคชัน', target_amount: 1, reward_points: 5, quest_type: 'achievement' },
+        { id: 'achievement_radiant_rank', title: 'แรงค์สูงสุดของร้าน (Radiant)', desc: 'สะสมแต้มให้ถึง 800 เพื่อขึ้นสู่ระดับสูงสุด', target_amount: 800, reward_points: 100, quest_type: 'achievement' }
+      ];
+      localStorage.setItem('ptom_quests_list', JSON.stringify(defaultQuests));
+      return defaultQuests;
+    }
+    const list = JSON.parse(existing);
+    return list.map(q => ({
+      id: q.id,
+      title: q.title,
+      desc: q.description || q.desc,
+      target: q.target_amount !== undefined ? q.target_amount : (q.target || 1),
+      points: q.reward_points !== undefined ? q.reward_points : (q.points || 0),
+      type: q.quest_type !== undefined ? q.quest_type : (q.type || 'daily')
+    }));
+  },
+  saveQuests(list) {
+    localStorage.setItem('ptom_quests_list', JSON.stringify(list));
+    window.dispatchEvent(new Event('storage'));
+  },
+  addQuest(id, title, desc, target, points, type) {
+    const list = JSON.parse(localStorage.getItem('ptom_quests_list')) || [];
+    if (list.some(q => q.id === id)) throw new Error('มีรหัสเควสนี้อยู่แล้วในระบบ');
+    const newQuest = {
+      id: id.trim(),
+      title: title.trim(),
+      description: desc.trim(),
+      target_amount: parseInt(target) || 1,
+      reward_points: parseInt(points) || 0,
+      quest_type: type
+    };
+    list.push(newQuest);
+    this.saveQuests(list);
+    this.logActivity('admin', 'เพิ่มเควสกิจกรรมใหม่', `เพิ่มเควส [${title}] รางวัล +${points} แต้ม`);
+    
+    // Supabase Sync
+    sbQuery('ptom_quests', 'POST', newQuest);
+    return newQuest;
+  },
+  deleteQuest(id) {
+    const list = JSON.parse(localStorage.getItem('ptom_quests_list')) || [];
+    const filtered = list.filter(q => q.id !== id);
+    if (list.length === filtered.length) throw new Error('ไม่พบเควสนี้ในระบบ');
+    const title = list.find(q => q.id === id).title;
+    this.saveQuests(filtered);
+    this.logActivity('admin', 'ลบเควสกิจกรรม', `ลบเควส [${title}] ออกจากระบบ`);
+    
+    // Supabase Sync
+    sbQuery(`ptom_quests?id=eq.${encodeURIComponent(id)}`, 'DELETE');
   },
 
   getUserQuests(username) {
@@ -1404,8 +1801,8 @@ const DB = {
   },
 
   dailyCheckin(username) {
-    const streakKey = `ptom_streak_${username}`;
-    const lastCheckinKey = `ptom_last_checkin_${username}`;
+    const streakKey = `ptom_streak_${username.toLowerCase()}`;
+    const lastCheckinKey = `ptom_last_checkin_${username.toLowerCase()}`;
     
     const now = new Date();
     const lastCheckinStr = localStorage.getItem(lastCheckinKey);
@@ -1444,7 +1841,7 @@ const DB = {
   },
 
   luckySpin(username) {
-    const lastSpinKey = `ptom_last_spin_${username}`;
+    const lastSpinKey = `ptom_last_spin_${username.toLowerCase()}`;
     const now = new Date();
     const lastSpinStr = localStorage.getItem(lastSpinKey);
 
@@ -1457,34 +1854,44 @@ const DB = {
 
     localStorage.setItem(lastSpinKey, now.toISOString());
 
-    const prizes = [
-      { type: 'points', value: 1, label: '+1 คะแนน' },
-      { type: 'points', value: 3, label: '+3 คะแนน' },
-      { type: 'points', value: 5, label: '+5 คะแนน' },
-      { type: 'coupon', value: 'free_topping', label: 'คูปองแถมท็อปปิ้งฟรี' },
-      { type: 'points', value: 10, label: 'บิ๊กแจ็กพอต +10 คะแนน! 🎉' },
-      { type: 'points', value: 0, label: 'ขอบคุณที่ร่วมสนุก (สุ่มใหม่วันพรุ่งนี้)' }
-    ];
+    const prizes = this.getSpinPrizes();
+    if (prizes.length === 0) throw new Error('ระบบวงล้อยังไม่มีรายการของรางวัล');
 
-    const spinValue = Math.random();
-    let index = 0;
-    if (spinValue < 0.40) index = 0;      // 1 Pt (40%)
-    else if (spinValue < 0.70) index = 1; // 3 Pts (30%)
-    else if (spinValue < 0.85) index = 2; // 5 Pts (15%)
-    else if (spinValue < 0.93) index = 3; // Topping Coupon (8%)
-    else if (spinValue < 0.98) index = 4; // Jackpot 10 Pts (5%)
-    else index = 5;                       // Lose (2%)
+    const totalWeight = prizes.reduce((acc, p) => acc + (parseFloat(p.weight) || 0), 0);
+    if (totalWeight <= 0) throw new Error('ค่าน้ำหนักโอกาสสุ่มรวมต้องมากกว่า 0');
 
-    const prize = prizes[index];
-    if (prize.type === 'points' && prize.value > 0) {
-      this.addPoints(username, prize.value, `หมุนวงล้อนำโชคประจำวัน ได้รับรางวัล`);
-    } else if (prize.type === 'coupon') {
-      this.addCoupon(username, 'คูปองฟรีท็อปปิ้ง (รางวัลจากวงล้อนำโชค)', 'free_topping', 7);
+    let roll = Math.random() * totalWeight;
+    let selectedPrize = null;
+    let selectedIndex = 0;
+
+    for (let i = 0; i < prizes.length; i++) {
+      roll -= (parseFloat(prizes[i].weight) || 0);
+      if (roll <= 0) {
+        selectedPrize = prizes[i];
+        selectedIndex = i;
+        break;
+      }
     }
 
-    this.logActivity(username, 'หมุนวงล้อสุ่มดวง', `หมุนวงล้อนำโชคสำเร็จ ได้รับ [${prize.label}]`);
+    if (!selectedPrize) {
+      selectedPrize = prizes[prizes.length - 1];
+      selectedIndex = prizes.length - 1;
+    }
 
-    return prize;
+    if (selectedPrize.type === 'points' && selectedPrize.value > 0) {
+      this.addPoints(username, parseInt(selectedPrize.value) || 0, `หมุนวงล้อนำโชคประจำวัน ได้รับรางวัล`);
+    } else if (selectedPrize.type === 'coupon') {
+      this.addCoupon(username, `คูปอง${selectedPrize.label} (รางวัลจากวงล้อนำโชค)`, selectedPrize.value || 'free_topping', 7);
+    }
+
+    this.logActivity(username, 'หมุนวงล้อสุ่มดวง', `หมุนวงล้อนำโชคสำเร็จ ได้รับ [${selectedPrize.label}]`);
+
+    return {
+      label: selectedPrize.label,
+      index: selectedIndex,
+      type: selectedPrize.type,
+      value: selectedPrize.value
+    };
   },
 
   // --- ACHIEVEMENT BADGES (PHASE 2) ---

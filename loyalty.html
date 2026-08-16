@@ -318,8 +318,8 @@
 
         const isExpired = new Date() > new Date(c.expiresAt);
         const expiresDate = new Date(c.expiresAt);
-        const isUuid = c.id.includes('-');
-        const shortCode = isUuid ? 'CPN-' + c.id.split('-')[0].toUpperCase() : c.id;
+        const isRealUuid = c.id.includes('-') && !c.id.startsWith('CPN-');
+        const shortCode = isRealUuid ? 'CPN-' + c.id.split('-')[0].toUpperCase() : c.id;
         
         let footerHTML = '';
         if (c.isUsed) {
@@ -378,8 +378,8 @@
     }
 
     function showCouponQr(couponId, couponTitle) {
-      const isUuid = couponId.includes('-');
-      const shortCode = isUuid ? 'CPN-' + couponId.split('-')[0].toUpperCase() : couponId;
+      const isRealUuid = couponId.includes('-') && !couponId.startsWith('CPN-');
+      const shortCode = isRealUuid ? 'CPN-' + couponId.split('-')[0].toUpperCase() : couponId;
       
       document.getElementById('qrModalTitle').textContent = couponTitle;
       document.getElementById('qrModalCode').textContent = shortCode;
