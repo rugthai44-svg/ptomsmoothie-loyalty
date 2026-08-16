@@ -272,7 +272,11 @@
 
       // Auto-populate fields
       const simulatedName = fullName || email.split('@')[0];
-      const simulatedUsername = (email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') + '_gg').substring(0, 15);
+      const users = DB.getUsers();
+      let simulatedUsername = (email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') + '_gg').substring(0, 15);
+      while (users.find(u => u.username === simulatedUsername.toLowerCase())) {
+        simulatedUsername = (email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '')).substring(0, 11) + '_' + Math.floor(100 + Math.random() * 900);
+      }
 
       document.getElementById('fullNameInput').value = simulatedName;
       document.getElementById('usernameInput').value = simulatedUsername;

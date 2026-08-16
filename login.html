@@ -242,39 +242,51 @@
     });
 
     function handleGoogleLoginInfo(userInfo, statusEl) {
-      const email = userInfo.email;
-      const fullName = userInfo.name;
-      const picture = userInfo.picture;
+      try {
+        const email = userInfo.email;
+        const fullName = userInfo.name;
+        const picture = userInfo.picture;
 
-      // Auto register / login the user
-      const username = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') + '_gg';
-      const users = DB.getUsers();
-      let user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+        // Auto register / login the user
+        const username = (email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') + '_gg').substring(0, 15);
+        const users = DB.getUsers();
+        let user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
 
-      if (!user) {
-        // Auto sign up if user does not exist
-        const pass = 'Gg_' + Math.random().toString(36).substring(2, 10) + '!';
-        user = DB.signUp(fullName, username, email, pass);
-        // Save Google profile avatar
-        if (picture) {
-          const freshUsers = DB.getUsers();
-          const uIdx = freshUsers.findIndex(u => u.username === user.username);
-          if (uIdx !== -1) {
-            freshUsers[uIdx].profileImage = picture;
-            DB.saveUsers(freshUsers);
-            user.profileImage = picture;
+        if (!user) {
+          // Auto sign up if user does not exist
+          const pass = 'Gg_' + Math.random().toString(36).substring(2, 10) + '!';
+          
+          // Make sure username is unique (append random string if already exists)
+          let uniqueUsername = username;
+          while (users.find(u => u.username === uniqueUsername)) {
+            uniqueUsername = username.substring(0, 11) + '_' + Math.floor(100 + Math.random() * 900);
+          }
+
+          user = DB.signUp(fullName, uniqueUsername, email, pass);
+          // Save Google profile avatar
+          if (picture) {
+            const freshUsers = DB.getUsers();
+            const uIdx = freshUsers.findIndex(u => u.username === user.username);
+            if (uIdx !== -1) {
+              freshUsers[uIdx].profileImage = picture;
+              DB.saveUsers(freshUsers);
+              user.profileImage = picture;
+            }
           }
         }
-      }
 
-      // Log in
-      localStorage.setItem('ptom_current_user', JSON.stringify(user));
-      statusEl.style.cssText = "color: var(--accent-green); background: rgba(57, 255, 20, 0.1); border: 1px solid var(--accent-green); padding: 10px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9rem; text-align: center;";
-      statusEl.textContent = `ยินดีต้อนรับคุณ ${fullName || user.fullName}! ล็อกอินด้วย Google สำเร็จ...`;
-      
-      setTimeout(() => {
-        window.location.href = 'home.html';
-      }, 1500);
+        // Log in
+        localStorage.setItem('ptom_current_user', JSON.stringify(user));
+        statusEl.style.cssText = "color: var(--accent-green); background: rgba(57, 255, 20, 0.1); border: 1px solid var(--accent-green); padding: 10px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9rem; text-align: center;";
+        statusEl.textContent = `ยินดีต้อนรับคุณ ${fullName || user.fullName}! ล็อกอินด้วย Google สำเร็จ...`;
+        
+        setTimeout(() => {
+          window.location.href = 'home.html';
+        }, 1500);
+      } catch (err) {
+        alert("การล็อกอินด้วย Google ล้มเหลว: " + err.message);
+        if (statusEl) statusEl.remove();
+      }
     }
 
     function runSimulatedGoogleLogin() {
