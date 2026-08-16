@@ -263,6 +263,9 @@
             } else {
               alert("ไม่ได้รับ Access Token จาก Google คาดว่าบราวเซอร์อาจบล็อกคุ้กกี้ของ Google หรือการเชื่อมต่อถูกขัดขวาง");
             }
+          },
+          error_callback: (err) => {
+            alert("Google GSI Error: " + err.type + "\n" + (err.message || "การขอสิทธิ์เข้าถึงล้มเหลว หรือหน้าต่างป๊อปอัพถูกปิดลง"));
           }
         });
         client.requestAccessToken();
