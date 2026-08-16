@@ -197,7 +197,7 @@
     googleLoginBtn.addEventListener('click', () => {
       let clientId = localStorage.getItem('ptom_google_client_id');
       
-      if (!clientId) {
+      if (!clientId || clientId.trim() === '' || !clientId.includes('.apps.googleusercontent.com')) {
         // Default seed to user's real Google Client ID
         clientId = '437099303581-i32b36qrrv0jggoh2at1cakcsushn0ja.apps.googleusercontent.com';
       }
