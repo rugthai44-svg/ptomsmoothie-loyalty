@@ -217,6 +217,10 @@
           client_id: clientId,
           scope: 'email profile',
           callback: (tokenResponse) => {
+            if (tokenResponse && tokenResponse.error) {
+              alert("Google Auth Error: " + tokenResponse.error + "\n" + (tokenResponse.error_description || "กรุณาตรวจสอบว่าบราวเซอร์เปิดการใช้งานคุ้กกี้บุคคลที่สาม (Third-party Cookies) หรือมีส่วนขยายบล็อกโฆษณาที่ขัดขวางการล็อกอินหรือไม่ครับ"));
+              return;
+            }
             if (tokenResponse && tokenResponse.access_token) {
               const statusBox = document.createElement('div');
               statusBox.style.cssText = "color: var(--accent-green); background: rgba(57, 255, 20, 0.1); border: 1px solid var(--accent-green); padding: 10px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9rem; text-align: center;";
@@ -232,6 +236,8 @@
                   alert("ดึงข้อมูลโปรไฟล์ Google ล้มเหลว: " + err.message);
                   statusBox.remove();
                 });
+            } else {
+              alert("ไม่ได้รับ Access Token จาก Google คาดว่าบราวเซอร์อาจบล็อกคุ้กกี้ของ Google หรือการเชื่อมต่อถูกขัดขวาง");
             }
           }
         });

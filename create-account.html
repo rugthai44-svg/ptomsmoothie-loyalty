@@ -241,6 +241,10 @@
           client_id: clientId,
           scope: 'email profile',
           callback: (tokenResponse) => {
+            if (tokenResponse && tokenResponse.error) {
+              alert("Google Auth Error: " + tokenResponse.error + "\n" + (tokenResponse.error_description || "กรุณาตรวจสอบว่าบราวเซอร์เปิดการใช้งานคุ้กกี้บุคคลที่สาม (Third-party Cookies) หรือมีส่วนขยายบล็อกโฆษณาที่ขัดขวางการล็อกอินหรือไม่ครับ"));
+              return;
+            }
             if (tokenResponse && tokenResponse.access_token) {
               successBox.textContent = "กำลังเชื่อมต่อบัญชี Google และดึงข้อมูลโปรไฟล์...";
               successBox.style.display = "block";
@@ -256,6 +260,8 @@
                   errorBox.style.display = "block";
                   successBox.style.display = "none";
                 });
+            } else {
+              alert("ไม่ได้รับ Access Token จาก Google คาดว่าบราวเซอร์อาจบล็อกคุ้กกี้ของ Google หรือการเชื่อมต่อถูกขัดขวาง");
             }
           }
         });
